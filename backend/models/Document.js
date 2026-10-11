@@ -40,18 +40,25 @@ const documentSchema = new mongoose.Schema(
     fileDataUrl: {
       type: String,
     },
-    expiryDate: {
-      type: String,
-      default: '',
-    },
-    status: {
-      type: String,
-      enum: ['verified', 'pending', 'expiring'],
-      default: 'pending',
-    },
+
     version: {
       type: Number,
       default: 1,
+    },
+    extractedData: {
+      // Fields auto-extracted from the document content
+      fullName:       { type: String, default: '' },
+      dateOfBirth:    { type: String, default: '' },
+      age:            { type: Number, default: null },
+      aadhaarNumber:  { type: String, default: '' },
+      panNumber:      { type: String, default: '' },
+      address:        { type: String, default: '' },
+      annualIncome:   { type: Number, default: null },
+      incomeText:     { type: String, default: '' },
+      socialCategory: { type: String, default: '' },
+      state:          { type: String, default: '' },
+      extractedAt:    { type: Date, default: null },
+      confidence:     { type: Number, default: 0 }, // 0-100 confidence score
     },
   },
   {

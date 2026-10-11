@@ -9,6 +9,8 @@ import {
   getDocumentFile,
   updateDocument,
   deleteDocument,
+  extractDocumentData,
+  getExtractedProfile,
 } from '../controllers/documentController.js';
 
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -27,7 +29,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB limit
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10 MB
   fileFilter: (_req, file, cb) => {
     const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
     if (allowed.includes(file.mimetype)) {
@@ -42,10 +44,12 @@ const router = Router();
 
 router.use(authenticate);
 
-router.get('/', getUserDocuments);
-router.post('/', upload.single('file'), uploadDocument);
-router.get('/:id/file', getDocumentFile);
-router.put('/:id', upload.single('file'), updateDocument);
-router.delete('/:id', deleteDocument);
+router.get('/',                 getUserDocuments);
+router.post('/',                upload.single('file'), uploadDocument);
+router.get('/extracted-profile', getExtractedProfile);
+router.get('/:id/file',         getDocumentFile);
+router.post('/:id/extract',     extractDocumentData);
+router.put('/:id',              upload.single('file'), updateDocument);
+router.delete('/:id',           deleteDocument);
 
 export default router;

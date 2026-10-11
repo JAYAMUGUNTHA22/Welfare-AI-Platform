@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Upload, FolderOpen, CheckCircle2, AlertCircle, RefreshCw, Filter, LogIn } from 'lucide-react';
+import {
+  Upload, FolderOpen, CheckCircle2, AlertCircle, LogIn, Sparkles,
+  User, Banknote, CreditCard, Tag, Shield
+} from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DocumentCard } from '@/components/shared/DocumentCard';
 import { DocumentPreviewModal } from '@/components/shared/DocumentPreviewModal';
 import { DocumentUploadModal } from '@/components/shared/DocumentUploadModal';
 import { DeleteConfirmModal } from '@/components/shared/DeleteConfirmModal';
 import { Button } from '@/components/ui/Button';
-import { documents as mockDocuments } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
 import {
   getDocumentsApi,
@@ -15,58 +17,37 @@ import {
   updateDocumentApi,
   deleteDocumentApi,
   getDocumentFileUrl,
+  getExtractedProfileApi,
 } from '@/services/api';
-
-const INITIAL_DOCS_KEY = 'welfareai_documents';
-
-function getInitialDocuments() {
-  try {
-    const saved = localStorage.getItem(INITIAL_DOCS_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch (e) {}
-
-  return mockDocuments.map((d, i) => ({
-    _id: d.id,
-    id: d.id,
-    name: d.name,
-    category: d.category,
-    originalFilename: `${d.name.toLowerCase().replace(/\s+/g, '_')}.${d.name.includes('Sheet') || d.name.includes('Certificate') || d.name.includes('Aadhaar') || d.name.includes('Records') ? 'pdf' : 'png'}`,
-    fileType: d.name.includes('Sheet') || d.name.includes('Certificate') || d.name.includes('Aadhaar') || d.name.includes('Records') ? 'application/pdf' : 'image/png',
-    fileSize: (i + 1) * 750000,
-    fileSizeFormatted: `${((i + 1) * 0.75).toFixed(1)} MB`,
-    uploadDate: d.uploadDate || '5 Jan 2026',
-    expiryDate: d.expiryDate || '',
-    status: d.status || 'verified',
-    version: 1,
-  }));
-}
 
 export function DocumentsPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [docList, setDocList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [notLoggedIn, setNotLoggedIn] = useState(false);
-  const [activeCategory, setActiveCategory] = useState('all');
-  
-  // Modals state
-  const [showUploadModal, setShowUploadModal] = useState(false);
-  const [editingDoc, setEditingDoc] = useState(null);
-  const [previewDoc, setPreviewDoc] = useState(null);
-  const [deletingDoc, setDeletingDoc] = useState(null);
-  const [isDeleting, setIsDeleting] = useState(false);
 
-  // Toast feedback state
+  const [docList,      setDocList]      = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [notLoggedIn,  setNotLoggedIn]  = useState(false);
+  const [activeCategory, setActiveCategory] = useState('all');
+  const [extractedProfile, setExtractedProfile] = useState(null);
+
+  // Modals
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [editingDoc,      setEditingDoc]      = useState(null);
+  const [previewDoc,      setPreviewDoc]      = useState(null);
+  const [deletingDoc,     setDeletingDoc]     = useState(null);
+  const [isDeleting,      setIsDeleting]      = useState(false);
+
+  // Toast
   const [toast, setToast] = useState(null);
 
   const categories = [
-    { key: 'all', labelKey: 'allDocuments' },
-    { key: 'identity', labelKey: 'identity' },
-    { key: 'income', labelKey: 'income' },
+    { key: 'all',       labelKey: 'allDocuments' },
+    { key: 'identity',  labelKey: 'identity' },
+    { key: 'income',    labelKey: 'income' },
     { key: 'education', labelKey: 'education' },
     { key: 'residence', labelKey: 'residence' },
-    { key: 'category', labelKey: 'casteCategory' },
-    { key: 'other', labelKey: 'other' },
+    { key: 'category',  labelKey: 'casteCategory' },
+    { key: 'other',     labelKey: 'other' },
   ];
 
   const showToast = (message, type = 'success') => {
@@ -83,7 +64,6 @@ export function DocumentsPage() {
     setLoading(true);
     setNotLoggedIn(false);
     if (!isAuthenticated()) {
-      // User is not logged in — show a login prompt, not mock data
       setDocList([]);
       setNotLoggedIn(true);
       setLoading(false);
@@ -91,118 +71,65 @@ export function DocumentsPage() {
     }
     try {
       const data = await getDocumentsApi();
-      if (data.documents && data.documents.length > 0) {
-        setDocList(data.documents);
-        localStorage.setItem(INITIAL_DOCS_KEY, JSON.stringify(data.documents));
-      } else {
-        setDocList([]);
-      }
-    } catch (err) {
-      // Backend offline — try local cache only (real user's cached docs)
+      setDocList(data.documents || []);
+      // Also fetch extracted profile summary
       try {
-        const saved = localStorage.getItem(INITIAL_DOCS_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setDocList(parsed);
-        } else {
-          setDocList([]);
-        }
-      } catch (e) {
-        setDocList([]);
-      }
+        const profileData = await getExtractedProfileApi();
+        if (profileData.profile) setExtractedProfile(profileData.profile);
+      } catch (_) {}
+    } catch (_) {
+      setDocList([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadDocuments();
-  }, []);
+  useEffect(() => { loadDocuments(); }, []);
 
-  const saveToLocalStorage = (newList) => {
-    setDocList(newList);
+  // Called when a document's extraction is updated
+  const handleExtracted = async (doc, result) => {
+    // Refresh extracted profile summary
     try {
-      localStorage.setItem(INITIAL_DOCS_KEY, JSON.stringify(newList));
-    } catch (e) {}
+      const profileData = await getExtractedProfileApi();
+      if (profileData.profile) setExtractedProfile(profileData.profile);
+    } catch (_) {}
+    // Update the doc in state with new extractedData
+    setDocList(prev =>
+      prev.map(d => (d._id || d.id) === (doc._id || doc.id)
+        ? { ...d, extractedData: result.extractedData }
+        : d
+      )
+    );
+    showToast(t('dataExtractedSuccess', { defaultValue: 'Profile auto-updated from document!' }));
   };
 
-  const handleSaveDocument = async ({ name, category, expiryDate, file, isReplace, existingId }) => {
-    let fileDataUrl = '';
-    let originalFilename = file?.name || 'document.pdf';
-    let fileType = file?.type || 'application/pdf';
-    let fileSize = file?.size || 1200000;
-    let fileSizeFormatted = `${(fileSize / (1024 * 1024)).toFixed(1)} MB`;
-
-    if (file) {
-      fileDataUrl = await new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result);
-        reader.readAsDataURL(file);
-      });
-    }
-
+  const handleSaveDocument = async ({ name, category, file, isReplace, existingId }) => {
     try {
       const formData = new FormData();
       formData.append('name', name);
       formData.append('category', category);
-      if (expiryDate) formData.append('expiryDate', expiryDate);
       if (file) formData.append('file', file);
 
       let savedDoc;
       if (isReplace && existingId) {
-        try {
-          const res = await updateDocumentApi(existingId, formData);
-          savedDoc = res.document;
-        } catch (e) {
-          // Fallback local update
-          const existing = docList.find((d) => (d._id || d.id) === existingId);
-          savedDoc = {
-            ...existing,
-            name,
-            category,
-            expiryDate,
-            originalFilename: file ? originalFilename : existing.originalFilename,
-            fileType: file ? fileType : existing.fileType,
-            fileSize: file ? fileSize : existing.fileSize,
-            fileSizeFormatted: file ? fileSizeFormatted : existing.fileSizeFormatted,
-            fileDataUrl: file ? fileDataUrl : existing.fileDataUrl,
-            version: (existing.version || 1) + (file ? 1 : 0),
-            status: 'pending',
-          };
-        }
-
-        const updatedList = docList.map((d) => ((d._id || d.id) === existingId ? savedDoc : d));
-        saveToLocalStorage(updatedList);
+        const res = await updateDocumentApi(existingId, formData);
+        savedDoc = res.document;
+        setDocList(prev => prev.map(d => (d._id || d.id) === existingId ? savedDoc : d));
         showToast(t('updateSuccess', { defaultValue: 'Document updated successfully!' }));
       } else {
+        const res = await uploadDocumentApi(formData);
+        savedDoc = res.document;
+        setDocList(prev => [savedDoc, ...prev]);
+        showToast(t('uploadSuccess', { defaultValue: 'Document uploaded! Data extracted from document.' }));
+        // Refresh extracted profile
         try {
-          const res = await uploadDocumentApi(formData);
-          savedDoc = res.document;
-        } catch (e) {
-          // Fallback local create
-          savedDoc = {
-            _id: `doc-custom-${Date.now()}`,
-            id: `doc-custom-${Date.now()}`,
-            name,
-            category,
-            originalFilename,
-            fileType,
-            fileSize,
-            fileSizeFormatted,
-            fileDataUrl: fileDataUrl || `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="600" height="400"><rect width="600" height="400" fill="%23EFF6FF"/><text x="300" y="200" font-family="Arial" font-size="24" fill="%231E40AF" text-anchor="middle">${encodeURIComponent(name)}</text></svg>`,
-            uploadDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
-            expiryDate,
-            status: 'pending',
-            version: 1,
-          };
-        }
-
-        const updatedList = [savedDoc, ...docList];
-        saveToLocalStorage(updatedList);
-        showToast(t('uploadSuccess', { defaultValue: 'Document uploaded successfully!' }));
+          const profileData = await getExtractedProfileApi();
+          if (profileData.profile) setExtractedProfile(profileData.profile);
+        } catch (_) {}
       }
     } catch (err) {
-      showToast(err.message || 'Failed to save document', 'error');
+      showToast(err.message || t('uploadFailed', { defaultValue: 'Failed to save document' }), 'error');
+      throw err;
     }
   };
 
@@ -210,16 +137,9 @@ export function DocumentsPage() {
     if (!deletingDoc) return;
     setIsDeleting(true);
     const docId = deletingDoc._id || deletingDoc.id;
-
     try {
-      try {
-        await deleteDocumentApi(docId);
-      } catch (e) {
-        // Backend offline fallback
-      }
-
-      const updatedList = docList.filter((d) => (d._id || d.id) !== docId);
-      saveToLocalStorage(updatedList);
+      await deleteDocumentApi(docId);
+      setDocList(prev => prev.filter(d => (d._id || d.id) !== docId));
       showToast(t('deleteSuccess', { defaultValue: 'Document deleted successfully!' }));
     } catch (err) {
       showToast(err.message || 'Failed to delete document', 'error');
@@ -239,44 +159,78 @@ export function DocumentsPage() {
       document.body.removeChild(link);
     } else if (doc._id) {
       window.open(getDocumentFileUrl(doc._id, true), '_blank');
-    } else {
-      const link = document.createElement('a');
-      const isPdf = doc.fileType?.includes('pdf') || doc.name?.includes('Sheet') || doc.name?.includes('Certificate') || doc.name?.includes('Aadhaar') || doc.name?.includes('Records');
-      const dummyContent = `WelfareAI Official Document Proof\nDocument: ${doc.name}\nCategory: ${doc.category}\nStatus: Verified\nVersion: ${doc.version || 1}`;
-      const blob = new Blob([dummyContent], { type: isPdf ? 'application/pdf' : 'text/plain' });
-      link.href = URL.createObjectURL(blob);
-      link.download = doc.originalFilename || `${doc.name}.${isPdf ? 'pdf' : 'txt'}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     }
   };
 
   const filtered = activeCategory === 'all'
     ? docList
-    : docList.filter((d) => d.category === activeCategory);
+    : docList.filter(d => d.category === activeCategory);
+
+  // ── Extracted profile summary banner ────────────────────────────────────────
+  const ProfileSummaryBanner = () => {
+    if (!extractedProfile || extractedProfile.extractedFields?.length === 0) return null;
+    const ep = extractedProfile;
+    return (
+      <div className="mb-6 rounded-2xl border border-primary-100 bg-gradient-to-r from-violet-50 via-purple-50 to-white p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 text-white">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="text-sm font-black text-navy-900">{t('docProfileTitle', { defaultValue: 'Profile Extracted from Documents' })}</p>
+            <p className="text-[11px] text-gray-500">{t('docProfileSub', { defaultValue: 'Auto-filled from your uploaded documents' })}</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+          {ep.age && <ProfileChip icon={<User className="h-3 w-3" />} label={t('age', { defaultValue: 'Age' })} value={`${ep.age} ${t('years', { defaultValue: 'yrs' })}`} />}
+          {ep.annualIncome && <ProfileChip icon={<Banknote className="h-3 w-3" />} label={t('annualIncome', { defaultValue: 'Annual Income' })} value={ep.incomeText || `₹${ep.annualIncome.toLocaleString('en-IN')}`} />}
+          {ep.aadhaarNumber && <ProfileChip icon={<CreditCard className="h-3 w-3" />} label={t('aadhaarNumber', { defaultValue: 'Aadhaar' })} value={'XXXX XXXX ' + String(ep.aadhaarNumber).slice(-4)} />}
+          {ep.socialCategory && <ProfileChip icon={<Tag className="h-3 w-3" />} label={t('socialCategory', { defaultValue: 'Category' })} value={ep.socialCategory} />}
+        </div>
+        <p className="mt-2 text-[10px] text-gray-400 flex items-center gap-1">
+          <Shield className="h-3 w-3" />
+          {t('profileAutoUpdated', { defaultValue: 'Your eligibility profile has been auto-updated from these documents.' })}
+        </p>
+      </div>
+    );
+  };
+
+  function ProfileChip({ icon, label, value }) {
+    return (
+      <div className="rounded-xl bg-white border border-purple-100 px-3 py-2">
+        <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
+          <span className="text-primary-500">{icon}</span> {label}
+        </div>
+        <p className="text-xs font-extrabold text-navy-800 truncate">{value}</p>
+      </div>
+    );
+  }
 
   return (
     <DashboardLayout title={t('documentVaultTitle')} subtitle={t('documentVaultSubtitle')}>
-      {/* Toast Banner */}
+      {/* Toast */}
       {toast && (
         <div className={`mb-5 flex items-center justify-between gap-3 rounded-xl p-4 border shadow-sm animate-slide-down ${
           toast.type === 'error' ? 'bg-error-50 text-error-800 border-error-200' : 'bg-success-50 text-success-800 border-success-200'
         }`}>
           <div className="flex items-center gap-2.5">
-            {toast.type === 'error' ? <AlertCircle className="h-5 w-5 text-error-600" /> : <CheckCircle2 className="h-5 w-5 text-success-600" />}
+            {toast.type === 'error'
+              ? <AlertCircle className="h-5 w-5 text-error-600" />
+              : <CheckCircle2 className="h-5 w-5 text-success-600" />
+            }
             <span className="text-sm font-semibold">{toast.message}</span>
           </div>
-          <button onClick={() => setToast(null)} className="text-xs font-bold opacity-75 hover:opacity-100">
-            ✕
-          </button>
+          <button onClick={() => setToast(null)} className="text-xs font-bold opacity-75 hover:opacity-100">✕</button>
         </div>
       )}
 
-      {/* Header Controls Bar */}
+      {/* Extracted profile summary */}
+      {!notLoggedIn && !loading && <ProfileSummaryBanner />}
+
+      {/* Filter + Upload bar */}
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          {categories.map((cat) => (
+          {categories.map(cat => (
             <button
               key={cat.key}
               onClick={() => setActiveCategory(cat.key)}
@@ -307,10 +261,10 @@ export function DocumentsPage() {
         </Button>
       </div>
 
-      {/* Main Document Grid */}
+      {/* Content */}
       {loading ? (
         <div className="grid gap-3 lg:grid-cols-2">
-          {[1, 2, 3, 4].map((n) => (
+          {[1, 2, 3, 4].map(n => (
             <div key={n} className="h-24 animate-pulse rounded-xl bg-gray-200" />
           ))}
         </div>
@@ -340,6 +294,9 @@ export function DocumentsPage() {
         <div className="rounded-2xl border border-gray-200 bg-white py-16 text-center shadow-xs">
           <FolderOpen className="mx-auto h-12 w-12 text-primary-300" />
           <p className="mt-3 text-sm font-medium text-gray-500">{t('noDocuments')}</p>
+          <p className="mt-1 text-xs text-gray-400">
+            {t('uploadFirstDoc', { defaultValue: 'Upload your first document to get started.' })}
+          </p>
           <Button
             variant="outline"
             size="sm"
@@ -351,29 +308,29 @@ export function DocumentsPage() {
         </div>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
-          {filtered.map((doc) => (
+          {filtered.map(doc => (
             <DocumentCard
               key={doc._id || doc.id}
               document={doc}
-              onView={(d) => setPreviewDoc(d)}
+              onView={d => setPreviewDoc(d)}
               onDownload={handleDownload}
-              onReplace={(d) => { setEditingDoc(d); setShowUploadModal(true); }}
-              onDelete={(d) => setDeletingDoc(d)}
+              onReplace={d => { setEditingDoc(d); setShowUploadModal(true); }}
+              onDelete={d => setDeletingDoc(d)}
+              onExtracted={handleExtracted}
             />
           ))}
         </div>
       )}
 
-      {/* Document Preview Modal */}
+      {/* Modals */}
       <DocumentPreviewModal
         open={!!previewDoc}
         onClose={() => setPreviewDoc(null)}
         document={previewDoc}
-        onReplace={(d) => { setEditingDoc(d); setShowUploadModal(true); }}
+        onReplace={d => { setEditingDoc(d); setShowUploadModal(true); }}
         onDownload={handleDownload}
       />
 
-      {/* Document Upload & Replacement Modal */}
       <DocumentUploadModal
         open={showUploadModal}
         onClose={() => { setShowUploadModal(false); setEditingDoc(null); }}
@@ -381,7 +338,6 @@ export function DocumentsPage() {
         existingDocument={editingDoc}
       />
 
-      {/* Delete Confirmation Dialog */}
       <DeleteConfirmModal
         open={!!deletingDoc}
         onClose={() => setDeletingDoc(null)}

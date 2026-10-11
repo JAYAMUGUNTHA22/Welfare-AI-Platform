@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { pagesEnglish, pagesHindi, pagesTamil, engSchemeDataExtra, hinSchemeDataExtra, tamSchemeDataExtra } from './translations';
-import { engExtra, hinExtra, tamExtra } from './extraTranslations';
+import { engExtra, hinExtra, tamExtra, marExtra } from './extraTranslations';
 
 const resources = {
   English: {
@@ -377,6 +377,186 @@ const resources = {
     }
   }
 };
+
+// ── Marathi ─────────────────────────────────────────────────────────────────
+const marTranslation = {
+  ...marExtra,
+  menu: { home: 'मुख्यपृष्ठ', dashboard: 'डॅशबोर्ड', mySchemes: 'माझ्या योजना', findSchemes: 'योजना शोधा', myApplications: 'माझे अर्ज', myBenefits: 'माझे लाभ', documents: 'कागदपत्रे', aiAssistant: 'AI सहाय्यक', whatIf: 'व्हाट-इफ सिम्युलेटर', compareSchemes: 'योजना तुलना', feedback: 'अभिप्राय', profile: 'प्रोफाइल' },
+  common: { citizenAccount: 'नागरिक खाते', adminDashboard: 'प्रशासक डॅशबोर्ड', logout: 'लॉग आउट', language: 'भाषा', changeLanguage: 'भाषा बदला' },
+  dashboard: { greeting: { morning: 'सुप्रभात!', afternoon: 'शुभ दुपार!', evening: 'शुभ संध्याकाळ!' }, welcomeBack: 'परत स्वागत आहे', recommendedSchemes: 'शिफारस केलेल्या योजना', activeApplications: 'सक्रिय अर्ज', benefitsReceived: 'प्राप्त लाभ', documents: 'कागदपत्रे', viewAll: 'सर्व पहा' },
+};
+
+// ── Telugu ───────────────────────────────────────────────────────────────────
+const telTranslation = {
+  menu: { home: 'హోమ్', dashboard: 'డాష్‌బోర్డ్', mySchemes: 'నా పథకాలు', findSchemes: 'పథకాలు వెతకండి', myApplications: 'నా దరఖాస్తులు', myBenefits: 'నా ప్రయోజనాలు', documents: 'పత్రాలు', aiAssistant: 'AI సహాయకుడు', whatIf: 'వాట్-ఇఫ్ సిమ్యులేటర్', compareSchemes: 'పథకాలు పోల్చండి', feedback: 'అభిప్రాయం', profile: 'ప్రొఫైల్' },
+  common: { citizenAccount: 'పౌర ఖాతా', adminDashboard: 'అడ్మిన్ డాష్‌బోర్డ్', logout: 'లాగ్ అవుట్', language: 'భాష', changeLanguage: 'భాష మార్చండి' },
+  authWelcome: 'తిరిగి స్వాగతం', authLoginSub: 'మీ WelfareAI ఖాతాలో సైన్ ఇన్ చేయండి',
+  emailAddress: 'ఇమెయిల్ చిరునామా', mobileNumber: 'మొబైల్ నంబర్', password: 'పాస్‌వర్డ్',
+  enterPassword: 'పాస్‌వర్డ్ నమోదు చేయండి', rememberMe: 'నన్ను గుర్తుంచుకో',
+  login: 'సైన్ ఇన్', loggingIn: 'సైన్ ఇన్ అవుతోంది…', noAccount: 'ఖాతా లేదా?', signUp: 'నమోదు చేయండి',
+  uploadDocument: 'పత్రం అప్‌లోడ్ చేయండి', documentVaultTitle: 'పత్ర వాల్ట్',
+  documentVaultSubtitle: 'మీ పత్రాలను సురక్షితంగా నిర్వహించండి',
+  allDocuments: 'అన్ని పత్రాలు', noDocuments: 'పత్రాలు లేవు',
+  uploadFirstDoc: 'ప్రారంభించడానికి మీ మొదటి పత్రాన్ని అప్‌లోడ్ చేయండి.',
+  aiExtracted: 'AI-సేకరించిన సమాచారం', extractData: 'డేటా సేకరించు',
+  extracting: 'సేకరిస్తోంది…', extracted: 'సేకరించబడింది',
+  dataExtracted: 'సమాచారం సేకరించబడింది', dataExtractedSuccess: 'పత్రం నుండి ప్రొఫైల్ అప్‌డేట్!',
+  extractedNote: 'స్వయంచాలకంగా సేకరించబడింది. వినియోగానికి ముందు ధృవీకరించండి.',
+  years: 'సం||', age: 'వయసు', dateOfBirth: 'పుట్టిన తేదీ',
+  aadhaarNumber: 'ఆధార్ నం', panNumber: 'PAN నం', annualIncome: 'వార్షిక ఆదాయం',
+  socialCategory: 'సామాజిక వర్గం', address: 'చిరునామా', state: 'రాష్ట్రం',
+  docProfileTitle: 'పత్రాల నుండి సేకరించిన ప్రొఫైల్', docProfileSub: 'అప్‌లోడ్ చేసిన పత్రాల నుండి స్వయంచాలకంగా నింపబడింది',
+  profileAutoUpdated: 'మీ అర్హత ప్రొఫైల్ స్వయంచాలకంగా అప్‌డేట్ చేయబడింది.',
+  aiData: 'AI సమాచారం', upload: 'అప్‌లోడ్', cancel: 'రద్దు', save: 'సేవ్', close: 'మూసివేయి',
+  view: 'చూడు', download: 'డౌన్‌లోడ్', replace: 'భర్తీ చేయి', delete: 'తొలగించు',
+  identity: 'గుర్తింపు', income: 'ఆదాయం', education: 'విద్య', residence: 'నివాసం', casteCategory: 'కులం / వర్గం', other: 'ఇతర',
+  loginToUpload: 'మీ పత్రాలను యాక్సెస్ చేయడానికి లాగిన్ చేయండి',
+  loginToUploadDesc: 'మీ ప్రభుత్వ పత్రాలను సురక్షితంగా అప్‌లోడ్ చేయడానికి సైನ್ ఇన్ చేయండి.',
+  uploadDate: 'అప్‌లోడ్ తేదీ', expires: 'గడువు ముగుస్తుంది',
+  aiExtractionNote: 'AI మీ పత్రం నుండి వయసు, ఆదాయం, వర్గం వివరాలను స్వయంచాలకంగా సేకరిస్తుంది.',
+  documentNameRequired: 'పత్రం పేరు అవసరం.',
+  fileRequired: 'అప్‌లోడ్ చేయడానికి ఒక ఫైల్ ఎంచుకోండి.',
+  optionalIfUnchanged: 'మార్పు లేకపోతే ఐచ్ఛికం',
+  documentFile: 'పత్రం ఫైల్',
+  optional: 'ఐచ్ఛికం',
+  refresh: 'రిఫ్రెష్',
+  documentPlaceholder: 'ఉదా. ఆధార్ కార్డ్',
+  uploadSuccess: 'పత్రం అప్‌లోడ్! వివరాలు స్వయంచాలకంగా సేకరించబడ్డాయి.',
+  updateSuccess: 'పత్రం అప్‌డేట్ చేయబడింది!',
+  deleteSuccess: 'పత్రం తొలగించబడింది!',
+  uploadFailed: 'అప్‌లోడ్ విఫలం. మళ్ళీ ప్రయత్నించండి.',
+  latestVersion: 'తాజా',
+  documentMetadata: 'పత్రం సమాచారం',
+  originalFile: 'ఫైల్',
+  moreOptions: 'ఇంకా ఎంపికలు',
+  noExpiry: 'గడువు తేదీ లేదు',
+  dragDrop: 'డ్రాగ్ చేసి వదలండి లేదా క్లిక్ చేసి బ్రౌజ్ చేయండి',
+  fileLimitNote: 'PDF, JPG, PNG గరిష్టం 10MB',
+  invalidFileType: 'అమాన్య ఫైల్ రకం.',
+  fileTooLarge: 'ఫైల్ పరిమాణం 10MB మించింది.',
+  documentName: 'పత్రం పేరు',
+  documentCategory: 'పత్రం వర్గం',
+  confirmDeleteTitle: 'పత్రం తొలగించు',
+  confirmDeleteMsg: 'ఈ పత్రాన్ని నిజంగా తొలగించాలనుకుంటున్నారా?',
+  previewTitle: 'పత్రం ప్రివ్యూ'
+};
+
+// ── Bengali ──────────────────────────────────────────────────────────────────
+const benTranslation = {
+  menu: { home: 'হোম', dashboard: 'ড্যাশবোর্ড', mySchemes: 'আমার প্রকল্প', findSchemes: 'প্রকল্প খুঁজুন', myApplications: 'আমার আবেদন', myBenefits: 'আমার সুবিধা', documents: 'নথিপত্র', aiAssistant: 'AI সহায়ক', whatIf: 'হোয়াট-ইফ সিমুলেটর', compareSchemes: 'প্রকল্প তুলনা', feedback: 'মতামত', profile: 'প্রোফাইল' },
+  common: { citizenAccount: 'নাগরিক অ্যাকাউন্ট', adminDashboard: 'অ্যাডমিন ড্যাশবোর্ড', logout: 'লগ আউট', language: 'ভাষা', changeLanguage: 'ভাষা পরিবর্তন' },
+  authWelcome: 'ফিরে আসতে স্বাগতম', authLoginSub: 'আপনার WelfareAI অ্যাকাউন্টে সাইন ইন করুন',
+  emailAddress: 'ইমেইল ঠিকানা', mobileNumber: 'মোবাইল নম্বর', password: 'পাসওয়ার্ড',
+  enterPassword: 'পাসওয়ার্ড লিখুন', rememberMe: 'আমাকে মনে রাখুন',
+  login: 'সাইন ইন', loggingIn: 'সাইন ইন হচ্ছে…', noAccount: 'অ্যাকাউন্ট নেই?', signUp: 'নিবন্ধন করুন',
+  uploadDocument: 'নথি আপলোড করুন', documentVaultTitle: 'নথি ভল্ট',
+  documentVaultSubtitle: 'আপনার নথিপত্র এক জায়গায় নিরাপদে পরিচালনা করুন',
+  allDocuments: 'সব নথি', noDocuments: 'কোনো নথি নেই',
+  uploadFirstDoc: 'শুরু করতে আপনার প্রথম নথি আপলোড করুন।',
+  aiExtracted: 'AI-নিষ্কাশিত তথ্য', extractData: 'ডেটা নিষ্কাশন',
+  extracting: 'নিষ্কাশন হচ্ছে…', extracted: 'নিষ্কাশিত',
+  dataExtracted: 'তথ্য নিষ্কাশিত', dataExtractedSuccess: 'নথি থেকে প্রোফাইল আপডেট!',
+  extractedNote: 'স্বয়ংক্রিয়ভাবে নিষ্কাশিত। ব্যবহারের আগে যাচাই করুন।',
+  years: 'বছর', age: 'বয়স', dateOfBirth: 'জন্ম তারিখ',
+  aadhaarNumber: 'আধার নং', panNumber: 'PAN নং', annualIncome: 'বার্ষিক আয়',
+  socialCategory: 'সামাজিক বিভাগ', address: 'ঠিকানা', state: 'রাজ্য',
+  docProfileTitle: 'নথি থেকে নিষ্কাশিত প্রোফাইল', docProfileSub: 'আপলোড করা নথি থেকে স্বয়ংক্রিয়ভাবে পূরণ',
+  profileAutoUpdated: 'আপনার যোগ্যতা প্রোফাইল স্বয়ংক্রিয়ভাবে আপডেট হয়েছে।',
+  aiData: 'AI তথ্য', upload: 'আপলোড', cancel: 'বাতিল', save: 'সংরক্ষণ', close: 'বন্ধ',
+  view: 'দেখুন', download: 'ডাউনলোড', replace: 'প্রতিস্থাপন', delete: 'মুছুন',
+  identity: 'পরিচয়', income: 'আয়', education: 'শিক্ষা', residence: 'বাসস্থান', casteCategory: 'জাতি / বিভাগ', other: 'অন্যান্য',
+  loginToUpload: 'আপনার নথি অ্যাক্সেস করতে লগইন করুন',
+  loginToUploadDesc: 'আপনার সরকারী নথি নিরাপদে আপলোড করতে সাইন ইন করুন।',
+  uploadDate: 'আপলোড তারিখ', expires: 'মেয়াদ শেষ',
+  aiExtractionNote: 'AI আপনার নথি থেকে বয়স, আয়, বিভাগ তথ্য স্বয়ংক্রিয়ভাবে নিষ্কাশন করবে।',
+  documentNameRequired: 'নথির নাম আবশ্যক।',
+  fileRequired: 'আপলোড করতে দয়া করে একটি ফাইল নির্বাচন করুন।',
+  optionalIfUnchanged: 'অপরিবর্তিত হলে ঐচ্ছিক',
+  documentFile: 'নথি ফাইল',
+  optional: 'ঐচ্ছিক',
+  refresh: 'রিফ্রেশ',
+  documentPlaceholder: 'যেমন: আধার কার্ড',
+  uploadSuccess: 'নথি আপলোড! বিবরণ স্বয়ংক্রিয়ভাবে নিষ্কাশিত।',
+  updateSuccess: 'নথি আপডেট করা হয়েছে!',
+  deleteSuccess: 'নথি মুছে ফেলা হয়েছে!',
+  uploadFailed: 'আপলোড ব্যর্থ। আবার চেষ্টা করুন।',
+  latestVersion: 'সর্বশেষ',
+  documentMetadata: 'নথি তথ্য',
+  originalFile: 'ফাইল',
+  moreOptions: 'আরো বিকল্প',
+  noExpiry: 'মেয়াদ নেই',
+  dragDrop: 'টেনে নামিয়ে দিন বা ক্লিক করুন',
+  fileLimitNote: 'PDF, JPG, PNG সর্বোচ্চ 10MB',
+  invalidFileType: 'অবৈধ ফাইল ফরম্যাট।',
+  fileTooLarge: 'ফাইল 10MB-এর বেশি।',
+  documentName: 'নথির নাম',
+  documentCategory: 'নথির বিভাগ',
+  confirmDeleteTitle: 'নথি মুছুন',
+  confirmDeleteMsg: 'আপনি কি সত্যিই এই নথিটি মুছতে চান?',
+  previewTitle: 'নথি প্রিভিউ'
+};
+
+// ── Gujarati ─────────────────────────────────────────────────────────────────
+const gujTranslation = {
+  common: { citizenAccount: 'નાગрика ખातу', adminDashboard: 'Admin', logout: 'Logout', language: 'ભাша', changeLanguage: 'ભаша ब对 bदलو' },
+  authWelcome: 'પાছા stawागт', authLoginSub: 'WelfareAI account मां sign in करो',
+  emailAddress: 'ઈmail पता', mobileNumber: 'Mobile number', password: 'Password',
+  enterPassword: 'Password nakho', rememberMe: 'Mane yaad nakho',
+  login: 'Login', loggingIn: 'Login thay che…', noAccount: 'Account नथी?', signUp: 'नोंdhणी करो',
+  uploadDocument: 'Document अपलोड करो', documentVaultTitle: 'Document Vault',
+  documentVaultSubtitle: 'तमारा documents एक जगे सुरक्षित रीते manage करो',
+  allDocuments: 'बधा Documents', noDocuments: 'कोई Document नथी',
+  uploadFirstDoc: 'शरू करवा पेहलु document अपलोड करो.',
+  aiExtracted: 'AI-extracted Info', extractData: 'Data extract करो',
+  extracting: 'Extract थाय छे…', extracted: 'Extract थयु',
+  dataExtracted: 'Info Extract थई', dataExtractedSuccess: 'Document माथी Profile auto-update!',
+  extractedNote: 'Auto-extracted. वापर पेहला verify करो.',
+  years: 'वर्ष', age: 'उमर', dateOfBirth: 'जन्म तारीख',
+  aadhaarNumber: 'Aadhaar नं', panNumber: 'PAN नं', annualIncome: 'वार्षिक आवक',
+  socialCategory: 'सामाजिक वर्ग', address: 'सरनामु', state: 'राज्य',
+  docProfileTitle: 'Documents माथी Profile', docProfileSub: 'Documents माथी auto-filled',
+  profileAutoUpdated: 'तमारी eligibility profile auto-update थई छे.',
+  aiData: 'AI Info', upload: 'Upload', cancel: 'Cancel', save: 'Save', close: 'बंद करो',
+  view: 'जुओ', download: 'Download', replace: 'बदलो', delete: 'हटावो',
+  identity: 'ओळख', income: 'आवक', education: 'शिक्षण', residence: 'रेहठाण', casteCategory: 'जात / वर्ग', other: 'अन्य',
+  loginToUpload: 'Documents जोवा Login करो', loginToUploadDesc: 'सरकारी Documents upload करवा Sign in करो.',
+  uploadDate: 'Upload Date', expires: 'Expiry',
+};
+
+// ── Kannada ──────────────────────────────────────────────────────────────────
+const kanTranslation = {
+  menu: { home: 'ಮನೆ', dashboard: 'ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', mySchemes: 'ನನ್ನ ಯೋಜನೆಗಳು', findSchemes: 'ಯೋಜನೆಗಳನ್ನು ಹುಡುಕಿ', myApplications: 'ನನ್ನ ಅರ್ಜಿಗಳು', myBenefits: 'ನನ್ನ ಪ್ರಯೋಜನಗಳು', documents: 'ದಾಖಲೆಗಳು', aiAssistant: 'AI ಸಹಾಯಕ', whatIf: 'ವಾಟ್-ಇಫ್ ಸಿಮ್ಯುಲೇಟರ್', compareSchemes: 'ಯೋಜನೆಗಳನ್ನು ಹೋಲಿಸಿ', feedback: 'ಪ್ರತಿಕ್ರಿಯೆ', profile: 'ಪ್ರೊಫೈಲ್' },
+  common: { citizenAccount: 'ನಾಗರಿಕ ಖಾತೆ', adminDashboard: 'ಅಡ್ಮಿನ್ ಡ್ಯಾಶ್‌ಬೋರ್ಡ್', logout: 'ಲಾಗ್ ಔಟ್', language: 'ಭಾಷೆ', changeLanguage: 'ಭಾಷೆ ಬದಲಿಸಿ' },
+  authWelcome: 'ಮತ್ತೆ ಸ್ವಾಗತ', authLoginSub: 'ನಿಮ್ಮ WelfareAI ಖಾತೆಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ',
+  emailAddress: 'ಇಮೇಲ್ ವಿಳಾಸ', mobileNumber: 'ಮೊಬೈಲ್ ನಂಬರ್', password: 'ಪಾಸ್‌ವರ್ಡ್',
+  enterPassword: 'ಪಾಸ್‌ವರ್ಡ್ ನಮೂದಿಸಿ', rememberMe: 'ನನ್ನನ್ನು ನೆನಪಿಡಿ',
+  login: 'ಸೈನ್ ಇನ್', loggingIn: 'ಸೈನ್ ಇನ್ ಆಗುತ್ತಿದೆ…', noAccount: 'ಖಾತೆ ಇಲ್ಲವೇ?', signUp: 'ನೋಂದಾಯಿಸಿ',
+  uploadDocument: 'ದಾಖಲೆ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ', documentVaultTitle: 'ದಾಖಲೆ ವಾಲ್ಟ್',
+  documentVaultSubtitle: 'ನಿಮ್ಮ ದಾಖಲೆಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ನಿರ್ವಹಿಸಿ',
+  allDocuments: 'ಎಲ್ಲ ದಾಖಲೆಗಳು', noDocuments: 'ದಾಖಲೆಗಳಿಲ್ಲ',
+  uploadFirstDoc: 'ಪ್ರಾರಂಭಿಸಲು ನಿಮ್ಮ ಮೊದಲ ದಾಖಲೆ ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.',
+  aiExtracted: 'AI-ಹೊರತೆಗೆದ ಮಾಹಿತಿ', extractData: 'ಡೇಟಾ ಹೊರತೆಗೆಯಿರಿ',
+  extracting: 'ಹೊರತೆಗೆಯಲಾಗುತ್ತಿದೆ…', extracted: 'ಹೊರತೆಗೆಯಲಾಗಿದೆ',
+  dataExtracted: 'ಮಾಹಿತಿ ಹೊರತೆಗೆಯಲಾಗಿದೆ', dataExtractedSuccess: 'ದಾಖಲೆಯಿಂದ ಪ್ರೊಫೈಲ್ ಅಪ್‌ಡೇಟ್!',
+  extractedNote: 'ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಹೊರತೆಗೆಯಲಾಗಿದೆ. ಬಳಕೆಗೆ ಮೊದಲು ಪರಿಶೀಲಿಸಿ.',
+  years: 'ವರ್ಷ', age: 'ವಯಸ್ಸು', dateOfBirth: 'ಹುಟ್ಟಿದ ದಿನ',
+  aadhaarNumber: 'ಆಧಾರ್ ನಂ', panNumber: 'PAN ನಂ', annualIncome: 'ವಾರ್ಷಿಕ ಆದಾಯ',
+  socialCategory: 'ಸಾಮಾಜಿಕ ವರ್ಗ', address: 'ವಿಳಾಸ', state: 'ರಾಜ್ಯ',
+  docProfileTitle: 'ದಾಖಲೆಗಳಿಂದ ಪ್ರೊಫೈಲ್', docProfileSub: 'ಅಪ್‌ಲೋಡ್ ಮಾಡಿದ ದಾಖಲೆಗಳಿಂದ ಸ್ವಯಂಚಾಲಿತ',
+  profileAutoUpdated: 'ನಿಮ್ಮ ಅರ್ಹತೆ ಪ್ರೊಫೈಲ್ ಸ್ವಯಂಚಾಲಿತವಾಗಿ ಅಪ್‌ಡೇಟ್ ಆಗಿದೆ.',
+  aiData: 'AI ಮಾಹಿತಿ', upload: 'ಅಪ್‌ಲೋಡ್', cancel: 'ರದ್ದುಗೊಳಿಸಿ', save: 'ಉಳಿಸಿ', close: 'ಮುಚ್ಚಿ',
+  view: 'ವೀಕ್ಷಿಸಿ', download: 'ಡೌನ್‌ಲೋಡ್', replace: 'ಬದಲಾಯಿಸಿ', delete: 'ಅಳಿಸಿ',
+  identity: 'ಗುರುತು', income: 'ಆದಾಯ', education: 'ಶಿಕ್ಷಣ', residence: 'ನಿವಾಸ', casteCategory: 'ಜಾತಿ / ವರ್ಗ', other: 'ಇತರ',
+  loginToUpload: 'ದಾಖಲೆಗಳನ್ನು ಪ್ರವೇಶಿಸಲು ಲಾಗಿನ್ ಮಾಡಿ', loginToUploadDesc: 'ಸರ್ಕಾರಿ ದಾಖಲೆಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಸೈನ್ ಇನ್ ಮಾಡಿ.',
+  uploadDate: 'ಅಪ್‌ಲೋಡ್ ದಿನಾಂಕ', expires: 'ಅವಧಿ ಮುಗಿಯುತ್ತದೆ',
+};
+
+// Register new language translations into the shared resources object
+resources['मराठी'] = { translation: marTranslation };
+resources['తెలుగు'] = { translation: telTranslation };
+resources['বাংলা']  = { translation: benTranslation };
+resources['ગુજરાતી'] = { translation: gujTranslation };
+resources['ಕನ್ನಡ'] = { translation: kanTranslation };
 
 const savedLanguage = typeof window !== 'undefined' ? (localStorage.getItem('userLanguage') || localStorage.getItem('i18nextLng') || 'English') : 'English';
 

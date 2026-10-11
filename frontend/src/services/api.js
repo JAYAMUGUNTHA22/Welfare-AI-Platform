@@ -70,6 +70,7 @@ export function getAllSchemes() {
   return request('/schemes');
 }
 
+// ── Documents ─────────────────────────────────────────────────────────────────
 export function getDocumentsApi() {
   return request('/documents');
 }
@@ -99,6 +100,17 @@ export function getDocumentFileUrl(id, download = false) {
   return `${API_BASE}/documents/${id}/file?download=${download}${token ? `&token=${token}` : ''}`;
 }
 
+/** Trigger server-side data extraction for a document */
+export function extractDocumentDataApi(id) {
+  return request(`/documents/${id}/extract`, { method: 'POST' });
+}
+
+/** Get aggregated profile data extracted from all user documents */
+export function getExtractedProfileApi() {
+  return request('/documents/extracted-profile');
+}
+
+// ── Schemes ───────────────────────────────────────────────────────────────────
 export function simulateEligibilityApi(payload) {
   return request('/schemes/simulate', {
     method: 'POST',
