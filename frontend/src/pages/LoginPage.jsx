@@ -1,26 +1,37 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ShieldCheck, Mail, Phone, Lock, Eye, EyeOff, Globe, AlertCircle } from 'lucide-react';
+import { ShieldCheck, Mail, Phone, Lock, Eye, EyeOff, Globe, AlertCircle, Sparkles, Copy, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { login } from '@/services/api';
 import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 
 const SUPPORTED_LANGUAGES = ['English', 'हिंदी', 'मराठी', 'தமிழ்', 'తెలుగు', 'বাংলা', 'ગુજરાતી', 'ಕನ್ನಡ'];
+const DEMO_EMAIL    = 'demo@welfareai.in';
+const DEMO_PASSWORD = 'Demo@1234';
 
 export function LoginPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const [mode, setMode] = useState('email');
+  const [mode, setMode]               = useState('email');
   const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [language, setLanguage] = useState(
+  const [email, setEmail]               = useState('');
+  const [password, setPassword]         = useState('');
+  const [error, setError]               = useState(null);
+  const [loading, setLoading]           = useState(false);
+  const [copied, setCopied]             = useState(false);
+  const [language, setLanguage]         = useState(
     localStorage.getItem('userLanguage') || 'English'
   );
+
+  const fillDemo = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setMode('email');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const redirectTarget = location.state?.from || '/dashboard';
 
@@ -71,6 +82,34 @@ export function LoginPage() {
             </Link>
             <h1 className="mt-4 text-2xl font-bold text-navy-900">{t('authWelcome')}</h1>
             <p className="mt-1 text-sm text-gray-500">{t('authLoginSub')}</p>
+          </div>
+
+          {/* ── Demo credentials banner ── */}
+          <div className="mb-5 rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-50 via-purple-50 to-primary-50 p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary-600" />
+                <span className="text-xs font-black uppercase tracking-wider text-primary-700">Demo Account</span>
+              </div>
+              <button
+                type="button"
+                onClick={fillDemo}
+                className="flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-primary-700 transition-colors shadow-xs"
+              >
+                {copied ? <CheckCheck className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                {copied ? 'Filled!' : 'Use Demo'}
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-lg bg-white border border-primary-100 px-3 py-2">
+                <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">Email</p>
+                <p className="text-xs font-extrabold text-navy-900 mt-0.5 break-all">{DEMO_EMAIL}</p>
+              </div>
+              <div className="rounded-lg bg-white border border-primary-100 px-3 py-2">
+                <p className="text-2xs font-bold text-gray-400 uppercase tracking-wider">Password</p>
+                <p className="text-xs font-extrabold text-navy-900 mt-0.5">{DEMO_PASSWORD}</p>
+              </div>
+            </div>
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-card lg:p-8">
