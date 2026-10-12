@@ -6,7 +6,7 @@ const sizeConfig = {
   lg: { ring: 'h-24 w-24', text: 'text-2xl', label: 'text-sm' },
 };
 
-export function MatchScore({ score, size = 'md', showLabel = true }) {
+export function MatchScore({ score, size = 'md', showLabel = true, scoreLabel }) {
   const { t } = useTranslation();
   const { ring, text, label } = sizeConfig[size];
   const color = score >= 85 ? 'text-primary-600' : score >= 70 ? 'text-accent-600' : 'text-navy-500';
@@ -23,7 +23,7 @@ export function MatchScore({ score, size = 'md', showLabel = true }) {
         </svg>
         <span className={`relative font-bold ${color} ${text}`}>{score}%</span>
       </div>
-      {showLabel && <span className={`font-semibold text-gray-500 ${label}`}>{t('scheme.match')}</span>}
+      {showLabel && <span className={`font-semibold text-gray-500 ${label}`}>{scoreLabel || t('scheme.match')}</span>}
     </div>
   );
 }

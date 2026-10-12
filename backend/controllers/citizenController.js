@@ -70,6 +70,9 @@ export async function updateCitizen(req, res) {
       'income',
       'annualIncomeINR',
       'socialCategory',
+      'isDifferentlyAbled',
+      'isWidow',
+      'motherWidowed',
     ];
     const updates = {};
 

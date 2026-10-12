@@ -9,7 +9,8 @@ import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { CategoryCard } from '@/components/shared/CategoryCard';
-import { categories, states, occupations, incomeBrackets } from '@/data/mockData';
+import { states, occupations, incomeBrackets } from '@/data/mockData';
+import { myschemeCategories } from '@/data/myschemeCategories';
 import { useTranslation } from 'react-i18next';
 
 export function LandingPage() {
@@ -136,8 +137,8 @@ export function LandingPage() {
           <p className="mt-2 text-base text-gray-500">{t('categoriesSub')}</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {categories.map((cat) => (
-            <CategoryCard key={cat.id} category={cat} onClick={() => navigate(`/schemes?category=${cat.id}`)} />
+          {myschemeCategories.map((cat) => (
+            <CategoryCard key={cat.id} category={cat} />
           ))}
         </div>
       </section>

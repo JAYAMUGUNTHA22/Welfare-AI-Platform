@@ -1,51 +1,74 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import {
   Search, ArrowRight, ArrowLeft, ChevronLeft, ChevronRight,
-  CheckCircle2, Sparkles, Filter,
   ShieldCheck, Award, GraduationCap, Heart, Baby, Users, Stethoscope,
-  Accessibility, Wheat, Briefcase, Home, Wallet, Rocket, MapPin, Building2,
-  User, IndianRupee, Calendar
+  Accessibility, Wheat, Briefcase, Home, Wallet, Rocket, MapPin, Building2
 } from 'lucide-react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
-import { categories, datasetSchemes } from '@/data/mockData';
-import { useTranslation } from 'react-i18next';
+import { myschemeCategories } from '@/data/myschemeCategories';
+import { loadMyschemeSchemes } from '@/data/myschemeDataset';
+import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
 
 const iconMap = {
   education: GraduationCap, women: Heart, children: Baby, 'senior-citizens': Users,
   healthcare: Stethoscope, 'disability-support': Accessibility, agriculture: Wheat,
   employment: Briefcase, housing: Home, 'financial-assistance': Wallet,
   entrepreneurship: Rocket, scholarships: Award,
+  'agriculture-rural-environment': Wheat,
+  'education-learning': GraduationCap,
+  'business-entrepreneurship': Rocket,
+  'social-welfare-empowerment': Wallet,
+  'women-and-child': Heart,
+  'skills-employment': Briefcase,
+  'banking-financial-services-and-insurance': Wallet,
+  'health-wellness': Stethoscope,
+  'sports-culture': Award,
+  'housing-shelter': Home,
+  'science-it-communications': Award,
+  'transport-infrastructure': MapPin,
+  'utility-sanitation': ShieldCheck,
+  'travel-tourism': MapPin,
+  'public-safety-law-justice': ShieldCheck,
 };
 
 const PAGE_SIZE = 12;
 
-// Colour coding for social category badges
-const catBadgeStyle = {
-  SC:      'bg-blue-50 text-blue-700 border-blue-200',
-  ST:      'bg-orange-50 text-orange-700 border-orange-200',
-  OBC:     'bg-yellow-50 text-yellow-700 border-yellow-200',
-  EWS:     'bg-pink-50 text-pink-700 border-pink-200',
-  General: 'bg-gray-100 text-gray-700 border-gray-300',
-};
-
 export function CategoryPage() {
   const { id } = useParams();
-  const { t } = useTranslation();
 
   const [searchQuery, setSearchQuery]     = useState('');
-  const [stateFilter, setStateFilter]     = useState('all');
-  const [socialFilter, setSocialFilter]   = useState('all');
+  const [levelFilter, setLevelFilter]     = useState('all');
   const [page, setPage]                   = useState(1);
+  const [allSchemes, setAllSchemes]       = useState([]);
+  const [loading, setLoading]             = useState(true);
+  const [loadError, setLoadError]         = useState('');
 
   // Reset page whenever filters change
-  useEffect(() => { setPage(1); }, [id, searchQuery, stateFilter, socialFilter]);
+  useEffect(() => { setPage(1); }, [id, searchQuery, levelFilter]);
   useEffect(() => { window.scrollTo(0, 0); }, [id]);
+  useEffect(() => {
+    let active = true;
 
-  const categoryInfo = categories.find(c => c.id === id) || {
+    loadMyschemeSchemes()
+      .then((schemes) => {
+        if (active) setAllSchemes(schemes);
+      })
+      .catch((error) => {
+        console.error('Failed to load MyScheme category data', error);
+        if (active) setLoadError('We could not load schemes for this category. Please try again later.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, []);
+
+  const categoryInfo = myschemeCategories.find(c => c.id === id) || {
     id: id || 'welfare',
     name: (id || 'Welfare').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
     description: 'Explore welfare schemes and benefits tailored for this sector.',
@@ -55,19 +78,20 @@ export function CategoryPage() {
 
   const IconComponent = iconMap[categoryInfo.id] || Award;
 
-  // All schemes for this category (primary OR tag match)
+  // Match the selected category against the categories assigned in schemeCategory.
   const categorySchemes = useMemo(() => {
     const selLower = (id || '').toLowerCase();
-    return datasetSchemes.filter(s => {
-      const cat  = (s.category || '').toLowerCase();
-      const tags = (s.tags || []).map(t => t.toLowerCase());
-      return cat === selLower || tags.includes(selLower);
+    const uniqueSchemes = new Map();
+    allSchemes.forEach((scheme) => {
+      if (scheme.tags.includes(selLower) && !uniqueSchemes.has(scheme.schemeId)) {
+        uniqueSchemes.set(scheme.schemeId, scheme);
+      }
     });
-  }, [id]);
+    return [...uniqueSchemes.values()];
+  }, [allSchemes, id]);
 
-  // Unique states & social categories for filter chips
-  const uniqueStates  = useMemo(() => [...new Set(categorySchemes.map(s => s.state).filter(Boolean))].sort(), [categorySchemes]);
-  const uniqueSocial  = useMemo(() => [...new Set(categorySchemes.map(s => s.socialCategory).filter(Boolean))].sort(), [categorySchemes]);
+  const centralSchemeCount = categorySchemes.filter((scheme) => scheme.level === 'Central').length;
+  const stateSchemeCount = categorySchemes.filter((scheme) => scheme.level === 'State').length;
 
   // Apply search + filters
   const filteredSchemes = useMemo(() => {
@@ -76,25 +100,17 @@ export function CategoryPage() {
       const matchSearch =
         !q ||
         s.name?.toLowerCase().includes(q) ||
-        s.state?.toLowerCase().includes(q) ||
-        s.socialCategory?.toLowerCase().includes(q) ||
+        s.details?.toLowerCase().includes(q) ||
         s.benefitSummary?.toLowerCase().includes(q);
-      const matchState  = stateFilter  === 'all' || s.state          === stateFilter;
-      const matchSocial = socialFilter === 'all' || s.socialCategory === socialFilter;
-      return matchSearch && matchState && matchSocial;
+      const matchLevel = levelFilter === 'all' || s.level === levelFilter;
+      return matchSearch && matchLevel;
     });
-  }, [categorySchemes, searchQuery, stateFilter, socialFilter]);
+  }, [categorySchemes, searchQuery, levelFilter]);
 
   const totalPages   = Math.max(1, Math.ceil(filteredSchemes.length / PAGE_SIZE));
   const pagedSchemes = filteredSchemes.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const otherCategories = categories.filter(c => c.id !== categoryInfo.id && c.schemeCount > 0);
-
-  const formatIncome = raw => {
-    const n = parseInt(raw, 10);
-    if (isNaN(n)) return raw;
-    return `₹${(n / 100000).toFixed(1)}L`;
-  };
+  const otherCategories = myschemeCategories.filter(c => c.id !== categoryInfo.id && c.schemeCount > 0);
 
   return (
     <div className="flex min-h-screen flex-col bg-gray-50/50">
@@ -127,7 +143,7 @@ export function CategoryPage() {
                     </span>
                   </div>
                   <h1 className="text-3xl font-black text-white sm:text-4xl lg:text-5xl tracking-tight">
-                    {categoryInfo.name} Welfare Schemes
+                    {categoryInfo.name} Schemes
                   </h1>
                   <p className="mt-3 text-sm sm:text-base text-purple-200 max-w-2xl leading-relaxed">
                     {categoryInfo.description}. Explore comprehensive benefits, subsidies, and social security programs available under this category.
@@ -137,8 +153,10 @@ export function CategoryPage() {
 
               {/* Count box */}
               <div className="shrink-0 rounded-2xl border border-white/20 bg-white/10 p-6 text-center backdrop-blur-md shadow-lg lg:min-w-[200px]">
-                <span className="text-4xl font-black text-white block">{categorySchemes.length}</span>
-                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-200 block mt-1">Total Entries</span>
+                <span className="text-4xl font-black text-white block">
+                  {loading ? categoryInfo.schemeCount : categorySchemes.length}
+                </span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-200 block mt-1">Total Schemes</span>
                 <span className="text-2xl font-black text-emerald-300 block mt-2">{filteredSchemes.length}</span>
                 <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-200 block">Matching Filters</span>
               </div>
@@ -147,20 +165,20 @@ export function CategoryPage() {
             {/* Stats grid */}
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-white/10 pt-6">
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Dataset Entries</span>
-                <span className="text-xs font-extrabold text-white mt-0.5 block">{categorySchemes.length} records</span>
+                <span className="text-2xs font-bold text-purple-200 uppercase block">Schemes Listed</span>
+                <span className="text-xs font-extrabold text-white mt-0.5 block">{categorySchemes.length} schemes</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">States Covered</span>
-                <span className="text-xs font-extrabold text-white mt-0.5 block">{uniqueStates.length} states</span>
+                <span className="text-2xs font-bold text-purple-200 uppercase block">Central Schemes</span>
+                <span className="text-xs font-extrabold text-white mt-0.5 block">{centralSchemeCount}</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Application Mode</span>
-                <span className="text-xs font-extrabold text-white mt-0.5 block">Online Portal + CSC</span>
+                <span className="text-2xs font-bold text-purple-200 uppercase block">State Schemes</span>
+                <span className="text-xs font-extrabold text-white mt-0.5 block">{stateSchemeCount}</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Coverage</span>
-                <span className="text-xs font-extrabold text-white mt-0.5 block">All Indian States</span>
+                <span className="text-2xs font-bold text-purple-200 uppercase block">Source</span>
+                <span className="text-xs font-extrabold text-white mt-0.5 block">MyScheme</span>
               </div>
             </div>
           </div>
@@ -173,56 +191,32 @@ export function CategoryPage() {
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder={`Search in ${categoryInfo.name} (scheme name, state, category…)`}
+              placeholder={`Search in ${categoryInfo.name} schemes`}
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               className="input-base pl-10 py-2.5 w-full"
             />
           </div>
 
-          {/* State chips */}
+          {/* Scheme level chips */}
           <div>
             <p className="text-2xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
-              <MapPin className="h-3 w-3" /> Filter by State
+              <MapPin className="h-3 w-3" /> Filter by Scheme Level
             </p>
             <div className="flex flex-wrap gap-2">
               <button
-                onClick={() => setStateFilter('all')}
-                className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${stateFilter === 'all' ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
+                onClick={() => setLevelFilter('all')}
+                className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${levelFilter === 'all' ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
               >
-                All States
+                All
               </button>
-              {uniqueStates.map(s => (
+              {['Central', 'State'].map(level => (
                 <button
-                  key={s}
-                  onClick={() => setStateFilter(s)}
-                  className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${stateFilter === s ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
+                  key={level}
+                  onClick={() => setLevelFilter(level)}
+                  className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${levelFilter === level ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
                 >
-                  {s}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Social category chips */}
-          <div>
-            <p className="text-2xs font-bold uppercase tracking-wider text-gray-400 mb-2 flex items-center gap-1">
-              <User className="h-3 w-3" /> Filter by Social Category
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setSocialFilter('all')}
-                className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${socialFilter === 'all' ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
-              >
-                All Categories
-              </button>
-              {uniqueSocial.map(c => (
-                <button
-                  key={c}
-                  onClick={() => setSocialFilter(c)}
-                  className={`rounded-lg px-3 py-1 text-xs font-bold transition-all ${socialFilter === c ? 'bg-primary-600 text-white shadow-xs' : 'bg-gray-100 text-navy-700 hover:bg-gray-200'}`}
-                >
-                  {c}
+                  {level}
                 </button>
               ))}
             </div>
@@ -241,21 +235,31 @@ export function CategoryPage() {
             </span>
           </div>
 
-          {filteredSchemes.length === 0 ? (
+          {loading ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-xs text-sm text-gray-500">
+              Loading schemes from MyScheme…
+            </div>
+          ) : loadError ? (
+            <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center shadow-xs text-sm text-red-700">
+              {loadError}
+            </div>
+          ) : filteredSchemes.length === 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-xs">
               <Building2 className="mx-auto h-12 w-12 text-gray-300" />
               <h3 className="mt-3 text-base font-bold text-navy-900">No schemes found</h3>
               <p className="mt-1 text-xs text-gray-500">Try adjusting your search or filters.</p>
               <button
                 className="mt-4 rounded-lg px-4 py-2 text-xs font-bold bg-primary-600 text-white hover:bg-primary-700 transition-colors"
-                onClick={() => { setSearchQuery(''); setStateFilter('all'); setSocialFilter('all'); }}
+                onClick={() => { setSearchQuery(''); setLevelFilter('all'); }}
               >
                 Reset Filters
               </button>
             </div>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {pagedSchemes.map(scheme => (
+              {pagedSchemes.map(scheme => {
+                const applicationUrl = getSchemeApplicationUrl(scheme);
+                return (
                 <Card
                   key={scheme.id}
                   className="flex flex-col justify-between p-5 transition-all hover:border-primary-400 hover:shadow-lg border-2 group"
@@ -271,67 +275,50 @@ export function CategoryPage() {
                   </div>
 
                   {/* Scheme name */}
-                  <Link to={`/schemes/${scheme.schemeId}`} className="group block mb-1">
+                  <Link to={`/schemes/${scheme.schemeId || scheme.id}`} className="group block mb-1">
                     <h3 className="text-base font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors leading-snug">
                       {scheme.name}
                     </h3>
                   </Link>
                   <p className="text-2xs font-semibold text-gray-400 mb-3">{scheme.provider}</p>
 
-                  {/* Dataset profile badges */}
-                  <div className="mb-3 grid grid-cols-2 gap-1.5">
-                    <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-2.5 py-1.5">
-                      <MapPin className="h-3 w-3 text-primary-500 shrink-0" />
-                      <span className="text-2xs font-bold text-navy-800 truncate">{scheme.state}</span>
-                    </div>
-                    <div className={`flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 ${catBadgeStyle[scheme.socialCategory] || catBadgeStyle.General}`}>
-                      <User className="h-3 w-3 shrink-0" />
-                      <span className="text-2xs font-bold truncate">{scheme.socialCategory}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-lg bg-gray-50 border border-gray-100 px-2.5 py-1.5">
-                      <Calendar className="h-3 w-3 text-purple-500 shrink-0" />
-                      <span className="text-2xs font-bold text-navy-800">Age {scheme.age} yrs</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-100 px-2.5 py-1.5">
-                      <IndianRupee className="h-3 w-3 text-emerald-600 shrink-0" />
-                      <span className="text-2xs font-bold text-emerald-800">{formatIncome(scheme.annualIncome)}/yr</span>
-                    </div>
+                  <div className="mb-3 flex flex-wrap gap-1.5">
+                    {scheme.schemeCategories.map(category => (
+                      <span key={category} className="rounded-full bg-gray-100 px-2.5 py-1 text-2xs font-semibold text-gray-600">
+                        {category}
+                      </span>
+                    ))}
+                    {scheme.level && (
+                      <span className="rounded-full bg-blue-50 px-2.5 py-1 text-2xs font-semibold text-blue-700">
+                        {scheme.level}
+                      </span>
+                    )}
                   </div>
 
                   {/* Benefit highlight */}
                   <div className="mb-3 rounded-xl border border-primary-100 bg-gradient-to-r from-purple-50 to-primary-50/60 p-3">
                     <p className="text-2xs font-black uppercase tracking-wider text-primary-700 mb-0.5">🎁 Benefit</p>
-                    <p className="text-xs font-bold text-navy-900 leading-snug">{scheme.benefitSummary}</p>
-                    {scheme.benefitAmount && (
-                      <span className="mt-1.5 inline-block rounded-md bg-primary-600 px-2 py-0.5 text-2xs font-bold text-white">
-                        {scheme.benefitAmount}
-                      </span>
-                    )}
+                    <p className="text-xs font-bold text-navy-900 leading-snug line-clamp-4">{scheme.benefitSummary || scheme.details}</p>
                   </div>
 
-                  {/* Key benefits */}
-                  {scheme.benefits && scheme.benefits.length > 0 && (
-                    <ul className="mb-3 space-y-1">
-                      {scheme.benefits.slice(0, 2).map((b, i) => (
-                        <li key={i} className="flex items-start gap-1.5 text-2xs text-navy-700 font-medium">
-                          <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-500 mt-0.5" />
-                          <span>{b}</span>
-                        </li>
-                      ))}
-                    </ul>
+                  {scheme.details && (
+                    <p className="mb-3 text-xs leading-relaxed text-navy-700 line-clamp-3">
+                      {scheme.details}
+                    </p>
                   )}
 
                   {/* Action */}
                   <div className="flex gap-2 pt-2 border-t border-gray-100 mt-auto">
-                    <Button to={`/schemes/${scheme.schemeId}`} variant="outline" size="sm" className="flex-1 justify-center text-xs">
+                    <Button to={`/schemes/${scheme.schemeId || scheme.id}`} variant="outline" size="sm" className="flex-1 justify-center text-xs">
                       Details
                     </Button>
-                    <Button to={`/schemes/${scheme.schemeId}`} variant="primary" size="sm" className="flex-1 justify-center gap-1 text-xs shadow-xs">
-                      Apply <ArrowRight className="h-3.5 w-3.5" />
+                    <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1 text-xs shadow-xs">
+                      {applicationUrl ? 'Apply' : 'Apply link unavailable'} <ArrowRight className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

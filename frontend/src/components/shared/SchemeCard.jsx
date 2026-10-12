@@ -6,6 +6,7 @@ import { MatchScore } from './MatchScore';
 import { VerificationBadge } from './VerificationBadge';
 import { useTranslation } from 'react-i18next';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
+import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
 
 const reasonIcon = {
   match: <CheckCircle2 className="h-4 w-4 text-success-500 shrink-0" />,
@@ -25,29 +26,33 @@ const schemeTranslationKeys = {
   'tata-skills': 'tataSkills',
 };
 
-export function SchemeCard({ scheme, showMatchReasons = true }) {
+export function SchemeCard({ scheme, showMatchReasons = false }) {
   const { t, i18n } = useTranslation();
   const sid = scheme.schemeId || scheme.id;
   const schemeNameKey = schemeTranslationKeys[sid] || sid;
   const matchReasons = scheme.matchReasons || [];
   const translated = getSchemeTranslation(sid, i18n.language, scheme);
+  const applicationUrl = getSchemeApplicationUrl(scheme);
   return (
     <Card className="flex flex-col gap-4 p-5" hover>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <Link to={`/schemes/${sid}`} className="group">
+          <Link
+            to={`/schemes/${sid}`}
+            state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons, recommendationNote: scheme.recommendationNote } }}
+            className="group"
+          >
             <h3 className="text-base font-bold text-navy-900 group-hover:text-primary-700 transition-colors">
               {translated.name || t(`schemeNames.${schemeNameKey}`, { defaultValue: t(`schemeData.${scheme.name}`, { defaultValue: scheme.name }) })}
             </h3>
           </Link>
           <p className="mt-1 text-sm text-gray-500">{translated.provider || t(`schemeData.${scheme.provider}`, { defaultValue: scheme.provider })}</p>
-          <div className="mt-2"><VerificationBadge status={scheme.verification} /></div>
+          {scheme.verification && <div className="mt-2"><VerificationBadge status={scheme.verification} /></div>}
         </div>
-        <MatchScore score={scheme.matchScore} size="md" />
+        <MatchScore score={scheme.matchScore} size="md" scoreLabel={scheme.matchScoreLabel} />
       </div>
 
-      <p className="text-sm text-navy-600">{translated.benefit || t(`schemeData.${scheme.benefitSummary}`, { defaultValue: scheme.benefitSummary })}</p>
-      <p className="text-xs text-gray-400">{t('scheme.deadline')}: {scheme.deadline}</p>
+      <p className="line-clamp-3 text-sm text-navy-600">{translated.benefit || t(`schemeData.${scheme.benefitSummary}`, { defaultValue: scheme.benefitSummary })}</p>
 
       {showMatchReasons && matchReasons.length > 0 && (
         <div className="rounded-xl bg-gray-50 p-3">
@@ -64,8 +69,8 @@ export function SchemeCard({ scheme, showMatchReasons = true }) {
       )}
 
       <div className="flex flex-wrap gap-2 mt-auto pt-2">
-        <Button to={`/schemes/${sid}`} variant="outline" size="sm">{t('scheme.viewDetails')}</Button>
-        <Button to={`/schemes/${sid}`} variant="primary" size="sm">{t('scheme.apply')} <ArrowRight className="h-4 w-4" /></Button>
+        <Button to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm">{t('scheme.viewDetails')}</Button>
+        <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm">{applicationUrl ? t('scheme.apply') : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" /></Button>
       </div>
     </Card>
   );

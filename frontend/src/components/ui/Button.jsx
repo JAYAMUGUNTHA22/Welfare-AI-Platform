@@ -27,14 +27,22 @@ export const Button = ({
   children,
   className = "",
   to,
+  href,
   ...props
 }) => {
   const classes = `${baseClass} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`;
   if (to) {
     return (
-      <Link to={to} className={classes}>
+      <Link to={to} className={classes} {...props}>
         {children}
       </Link>
+    );
+  }
+  if (href) {
+    return (
+      <a href={href} className={classes} {...props}>
+        {children}
+      </a>
     );
   }
   return (

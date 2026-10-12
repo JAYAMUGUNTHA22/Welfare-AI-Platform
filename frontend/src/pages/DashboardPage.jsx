@@ -6,17 +6,16 @@ import {
   FolderOpen,
   ArrowRight,
   Clock,
-  CheckCircle2,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
 import { DashboardCard } from "@/components/shared/DashboardCard";
 import { SchemeCard } from "@/components/shared/SchemeCard";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { applications, benefits, documents } from "@/data/mockData";
-import { getDashboardData, getMe, getRecommendedSchemes } from "@/services/api";
+import { getDashboardData, getMe } from "@/services/api";
 import { useTranslation } from "react-i18next";
+import { getPersonalizedSchemeRecommendations } from "@/data/myschemeDataset";
 
 export function DashboardPage() {
   const { t } = useTranslation();
@@ -28,16 +27,30 @@ export function DashboardPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const [dashData, userData, recommendedSchemes] = await Promise.all([
+        let cachedUser = null;
+        try {
+          cachedUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+        } catch (error) {
+          console.warn("Could not read the cached user profile", error);
+        }
+
+        const [dashResult, userResult] = await Promise.allSettled([
           getDashboardData(),
           getMe(),
-          getRecommendedSchemes(),
         ]);
-        setDashboardData(dashData);
-        setUser(userData?.user);
-        setSchemes(recommendedSchemes);
+        if (dashResult.status === "fulfilled") setDashboardData(dashResult.value);
+        else console.warn("Could not load dashboard summary data", dashResult.reason);
+
+        const currentUser = userResult.status === "fulfilled"
+          ? userResult.value?.user || userResult.value || cachedUser
+          : cachedUser;
+        if (userResult.status === "rejected") {
+          console.warn("Could not refresh the user profile; using the saved profile if available.", userResult.reason);
+        }
+        setUser(currentUser);
+        setSchemes(await getPersonalizedSchemeRecommendations(currentUser || {}));
       } catch (err) {
-        console.error("Failed to load dashboard data", err);
+        console.error("Failed to load dashboard recommendations", err);
       }
     }
     loadData();
@@ -66,7 +79,6 @@ export function DashboardPage() {
           value={schemes.length}
           icon={Sparkles}
           color="primary"
-          trend="+3 new"
         />
         <DashboardCard
           label={t('dashboard.activeApplications')}
@@ -90,29 +102,36 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* AI-Matched Schemes */}
+      {/* Profile-matched scheme recommendations */}
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold text-navy-900">
-              {t('dashboard.aiMatchedSchemes')}
+              {t('dashboard.recommendedSchemes')}
             </h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              {t('dashboard.aiMatchedDesc')}
+              Profile-based suggestions from MyScheme eligibility details. Confirm requirements on the official scheme website before applying.
             </p>
           </div>
           <Link
-            to="/my-schemes  "
+            to="/my-schemes"
             className="hidden text-sm font-semibold text-primary-600 hover:text-primary-700 sm:flex items-center gap-1"
           >
             {t('dashboard.viewAll')} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-          {schemes.slice(0, 4).map((scheme) => (
-            <SchemeCard key={scheme.id} scheme={scheme} />
-          ))}
-        </div>
+        {schemes.length > 0 ? (
+          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+            {schemes.slice(0, 4).map((scheme) => (
+              <SchemeCard key={scheme.id} scheme={scheme} />
+            ))}
+          </div>
+        ) : (
+          <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+            Add your age, occupation, income, and category in the scheme finder to get personalized suggestions.{' '}
+            <Link to="/schemes" className="font-semibold text-primary-700 hover:text-primary-800">Find schemes</Link>
+          </p>
+        )}
       </div>
 
       {/* Quick actions */}

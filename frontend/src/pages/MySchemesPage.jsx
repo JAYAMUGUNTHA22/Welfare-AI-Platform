@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Sparkles, Search, SlidersHorizontal, CheckCircle2, AlertCircle,
   ArrowRight, User, Calendar, MapPin, Briefcase, Wallet, Clock,
@@ -8,41 +8,21 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getMe, getRecommendedSchemes } from '@/services/api';
-import { schemes as mockSchemes, applications } from '@/data/mockData';
+import { getMe } from '@/services/api';
+import { applications } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
-import datasetData from '@/data/dataset.json';
-
-const datasetSchemeIdMap = {
-  'National Scholarship': 'pm-scholarship',
-  'Ayushman Bharat': 'ayushman-bharat',
-  'PM Kisan': 'pm-kisan',
-  'PM Awas Yojana': 'pmay-housing',
-  'Atal Pension Yojana': 'atal-pension-yojana',
-  'Mudra Loan': 'mudra-loan',
-  'Stand Up India': 'stand-up-india',
-};
+import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
+import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
+import { myschemeCategories } from '@/data/myschemeCategories';
 
 function getMatchTier(score) {
-  if (score >= 90) return { label: 'Highly Relevant', color: 'bg-purple-100 text-purple-800 border-purple-300' };
-  if (score >= 82) return { label: 'Strong Match', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-  if (score >= 75) return { label: 'Good Match', color: 'bg-blue-100 text-blue-800 border-blue-300' };
-  return { label: 'Potential Match', color: 'bg-amber-100 text-amber-800 border-amber-300' };
-}
-
-function parseIncomeBounds(incomeStr) {
-  if (!incomeStr) return [0, Infinity];
-  if (incomeStr.includes('Below')) return [0, 100000];
-  if (incomeStr.includes('1-2.5')) return [100000, 250000];
-  if (incomeStr.includes('2.5-5')) return [250000, 500000];
-  if (incomeStr.includes('5-10')) return [500000, 1000000];
-  if (incomeStr.includes('Above')) return [1000000, Infinity];
-  return [0, Infinity];
+  if (score >= 90) return { label: 'Strong Match', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
+  if (score >= 50) return { label: 'Potential Match', color: 'bg-amber-100 text-amber-800 border-amber-300' };
+  return { label: 'Needs Review', color: 'bg-gray-100 text-gray-700 border-gray-300' };
 }
 
 export function MySchemesPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
   const [recommendedSchemes, setRecommendedSchemes] = useState([]);
@@ -66,125 +46,37 @@ export function MySchemesPage() {
     try {
       let fetchedUser = null;
       try {
+        fetchedUser = JSON.parse(localStorage.getItem('currentUser') || 'null');
+      } catch (cacheError) {
+        console.warn('Could not read the cached user profile', cacheError);
+      }
+      try {
         const meRes = await getMe();
-        fetchedUser = meRes?.user || meRes;
-      } catch (e) {
-        console.log('No logged-in user session, fallback to default profile context');
+        fetchedUser = meRes?.user || meRes || fetchedUser;
+      } catch (profileError) {
+        console.warn('Could not refresh the user profile; using the saved profile if available.', profileError);
       }
 
-      // Default profile fallback if session is mock or missing fields
       const userProfile = {
-        state: fetchedUser?.state || 'Tamil Nadu',
-        age: fetchedUser?.age || 30,
-        occupation: fetchedUser?.occupation || 'Salaried Employee',
-        income: fetchedUser?.income || '₹2.5-5 lakh',
-        socialCategory: fetchedUser?.socialCategory || 'General',
-        fullName: fetchedUser?.fullName || 'Citizen',
+        state: fetchedUser?.state || '',
+        age: fetchedUser?.age || null,
+        occupation: fetchedUser?.occupation || '',
+        income: fetchedUser?.income || '',
+        annualIncomeINR: fetchedUser?.annualIncomeINR,
+        socialCategory: fetchedUser?.socialCategory || '',
+        isDifferentlyAbled: Boolean(fetchedUser?.isDifferentlyAbled),
+        isWidow: Boolean(fetchedUser?.isWidow),
+        motherWidowed: Boolean(fetchedUser?.motherWidowed),
+        fullName: fetchedUser?.fullName || 'You',
       };
       setUser(userProfile);
-
-      // Try backend endpoint first
-      let apiSchemes = [];
-      try {
-        apiSchemes = await getRecommendedSchemes();
-      } catch (e) {
-        console.log('Backend API failed, evaluating locally against dataset');
-      }
-
-      if (apiSchemes && apiSchemes.length > 0) {
-        // Enhance API schemes with reasons & tiers if missing
-        const enhanced = apiSchemes.map(s => {
-          const score = s.matchScore || 85;
-          const tierInfo = getMatchTier(score);
-          const reasons = s.matchReasons && s.matchReasons.length > 0 ? s.matchReasons : [
-            { label: `Available in ${userProfile.state}`, status: 'match' },
-            { label: `Suits occupation (${userProfile.occupation})`, status: 'match' },
-            { label: `Age ${userProfile.age} falls in eligible range`, status: 'match' },
-            { label: `Income bracket (${userProfile.income}) verified`, status: 'match' }
-          ];
-          return { ...s, matchScore: score, matchTier: tierInfo.label, matchReasons: reasons };
-        });
-        setRecommendedSchemes(enhanced);
-      } else {
-        // Fallback: Calculate dataset-driven recommendations for user profile
-        const computed = evaluatePersonalizedSchemes(userProfile);
-        setRecommendedSchemes(computed);
-      }
+      setRecommendedSchemes(await getPersonalizedSchemeRecommendations(userProfile));
     } catch (err) {
       console.error('Failed to load personalized recommendations', err);
       setError('We could not load your personalized recommendations. Please try again.');
     } finally {
       setLoading(false);
     }
-  };
-
-  const evaluatePersonalizedSchemes = (userProfile) => {
-    const { state, age, occupation, income } = userProfile;
-    const userAgeNum = parseInt(age, 10) || 30;
-    const [incomeMin, incomeMax] = parseIncomeBounds(income);
-
-    // 1. Filter dataset rows matching state & age
-    let matchedRows = datasetData.filter((row) => {
-      let stateMatch = !state || row.State?.toLowerCase() === state.toLowerCase();
-      let ageMatch = !age || Math.abs(Number(row.Age) - userAgeNum) <= 20;
-      let incomeVal = Number(row.Annual_Income_INR);
-      let incomeMatch = !income || (incomeVal >= incomeMin * 0.7 && incomeVal <= incomeMax * 1.3);
-      return stateMatch && ageMatch && incomeMatch;
-    });
-
-    if (matchedRows.length < 5 && state) {
-      matchedRows = datasetData.filter((row) => row.State?.toLowerCase() === state.toLowerCase());
-    }
-    if (matchedRows.length === 0) matchedRows = datasetData;
-
-    // 2. Count frequency
-    const schemeCounts = {};
-    matchedRows.forEach((row) => {
-      if (row.Eligible_Scheme) {
-        schemeCounts[row.Eligible_Scheme] = (schemeCounts[row.Eligible_Scheme] || 0) + 1;
-      }
-    });
-    const maxCount = Math.max(...Object.values(schemeCounts), 1);
-
-    // 3. Score schemes
-    return mockSchemes.map((scheme) => {
-      const sid = scheme.schemeId || scheme.id;
-      let datasetName = Object.keys(datasetSchemeIdMap).find(k => datasetSchemeIdMap[k] === sid);
-      const count = datasetName ? schemeCounts[datasetName] || 0 : 1;
-
-      let score = Math.min(Math.max(78 + Math.round((count / maxCount) * 18), 76), 96);
-      const occLower = (occupation || '').toLowerCase();
-
-      if (occLower.includes('salaried')) {
-        if (sid === 'atal-pension-yojana') score = 96;
-        if (sid === 'ayushman-bharat') score = 92;
-        if (sid === 'pmay-housing') score = 86;
-        if (sid === 'mudra-loan') score = 83;
-      } else if (occLower.includes('farmer')) {
-        if (sid === 'pm-kisan') score = 98;
-        if (sid === 'mgnrega') score = 88;
-      } else if (occLower.includes('student')) {
-        if (sid === 'pm-scholarship') score = 96;
-        if (sid === 'tata-skill-dev') score = 84;
-      }
-
-      const reasons = [
-        { label: `Available in ${state || 'All India'}`, status: 'match' },
-        { label: `Matches occupation: ${occupation || 'General'}`, status: 'match' },
-        { label: `Age (${age}) meets eligibility criteria`, status: 'match' },
-        { label: `Income (${income}) falls within eligible range`, status: 'match' },
-        { label: `Verified against Indian Govt Dataset (${count} matching records)`, status: 'match' },
-      ];
-
-      const tierInfo = getMatchTier(score);
-
-      return {
-        ...scheme,
-        matchScore: score,
-        matchTier: tierInfo.label,
-        matchReasons: reasons,
-      };
-    }).sort((a, b) => b.matchScore - a.matchScore);
   };
 
   // Filter & Search Logic
@@ -200,11 +92,7 @@ export function MySchemesPage() {
     }
 
     // Category filter
-    if (selectedCategory !== 'All') {
-      const cat = scheme.category?.toLowerCase() || '';
-      const sel = selectedCategory.toLowerCase();
-      if (!cat.includes(sel) && !(sel === 'education' && cat === 'scholarships')) return false;
-    }
+    if (selectedCategory !== 'All' && !scheme.schemeCategories?.includes(selectedCategory)) return false;
 
     // Match tier filter
     if (selectedMatchTier !== 'All') {
@@ -216,7 +104,10 @@ export function MySchemesPage() {
 
   // Sort logic
   if (sortBy === 'relevant') {
-    filteredSchemes.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+    filteredSchemes.sort((a, b) => (
+      (b.rankingScore || 0) - (a.rankingScore || 0)
+      || (b.matchScore || 0) - (a.matchScore || 0)
+    ));
   } else if (sortBy === 'a-z') {
     filteredSchemes.sort((a, b) => a.name.localeCompare(b.name));
   } else if (sortBy === 'deadline') {
@@ -225,11 +116,15 @@ export function MySchemesPage() {
 
   // Calculated Stats
   const highlyRelevantCount = recommendedSchemes.filter(s => s.matchScore >= 90).length;
-  const strongMatchesCount = recommendedSchemes.filter(s => s.matchScore >= 82 && s.matchScore < 90).length;
+  const strongMatchesCount = recommendedSchemes.filter(s => s.matchScore >= 50 && s.matchScore < 90).length;
   const approachingDeadlineCount = recommendedSchemes.filter(s => s.deadline && s.deadline !== '—' && !s.deadline.includes('Open')).length;
+  const hasProfileData = Boolean(
+    user?.state || user?.age || user?.occupation || user?.income
+    || user?.annualIncomeINR != null || user?.socialCategory
+  );
 
-  const categoriesList = ['All', 'Education', 'Healthcare', 'Employment', 'Housing', 'Agriculture', 'Financial Assistance'];
-  const matchTiersList = ['All', 'Highly Relevant', 'Strong Match', 'Good Match', 'Potential Match'];
+  const categoriesList = ['All', ...myschemeCategories.map((category) => category.name)];
+  const matchTiersList = ['All', 'Strong Match', 'Potential Match', 'Needs Review'];
 
   return (
     <DashboardLayout
@@ -247,7 +142,7 @@ export function MySchemesPage() {
               Curated for {user?.fullName || 'You'}
             </h2>
             <p className="text-xs text-purple-200 sm:text-sm">
-              We matched your profile with live Indian Government criteria & 1,500+ verified dataset rules.
+              Recommendations are ranked using your profile and the eligibility details available in the MyScheme dataset. Confirm all requirements on the official scheme website before applying.
             </p>
 
             {/* Profile Metadata Chips */}
@@ -270,6 +165,16 @@ export function MySchemesPage() {
               {user?.income && (
                 <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
                   <Wallet className="h-3.5 w-3.5 text-accent-400" /> {user.income}
+                </span>
+              )}
+              {user?.annualIncomeINR != null && (
+                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
+                  <Wallet className="h-3.5 w-3.5 text-accent-400" /> ₹{Number(user.annualIncomeINR).toLocaleString('en-IN')} annual income
+                </span>
+              )}
+              {user?.socialCategory && (
+                <span className="rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
+                  {user.socialCategory} category
                 </span>
               )}
             </div>
@@ -324,7 +229,7 @@ export function MySchemesPage() {
               <Clock className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-2xl font-black text-amber-950">{approachingDeadlineCount || 1}</p>
+              <p className="text-2xl font-black text-amber-950">{approachingDeadlineCount}</p>
               <p className="text-xs font-medium text-amber-700">Deadlines Approaching</p>
             </div>
           </div>
@@ -465,8 +370,17 @@ export function MySchemesPage() {
       ) : filteredSchemes.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-xs">
           <Filter className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-          <h3 className="text-base font-bold text-navy-900">No schemes found matching your filter</h3>
-          <p className="mt-1 text-xs text-gray-500">Try clearing search keywords or resetting match level filters.</p>
+          <h3 className="text-base font-bold text-navy-900">
+            {hasProfileData ? 'No schemes found matching your filter' : 'Add profile details to get personalized scheme suggestions'}
+          </h3>
+          <p className="mt-1 text-xs text-gray-500">
+            {hasProfileData
+              ? 'Try clearing search keywords or resetting match level filters.'
+              : 'Enter your age, occupation, income, and category in Find Schemes.'}
+          </p>
+          {!hasProfileData && (
+            <Button to="/schemes" variant="outline" size="sm" className="mt-4">Open Find Schemes</Button>
+          )}
           <Button
             onClick={() => {
               setSearchQuery('');
@@ -484,7 +398,8 @@ export function MySchemesPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filteredSchemes.map((scheme) => {
             const sid = scheme.schemeId || scheme.id;
-            const tierInfo = getMatchTier(scheme.matchScore || 80);
+            const applicationUrl = getSchemeApplicationUrl(scheme);
+            const tierInfo = getMatchTier(scheme.matchScore ?? 0);
 
             // Check if user has applied
             const app = applications.find(a => a.schemeId === sid || a.schemeName === scheme.name);
@@ -498,8 +413,8 @@ export function MySchemesPage() {
                 <div>
                   {/* Card Header: Category & Match Tier Badge */}
                   <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                    <span className="rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-2xs font-black uppercase text-purple-700">
-                      {scheme.category?.replace('-', ' ') || 'Welfare Scheme'}
+                    <span className="truncate rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-2xs font-black uppercase text-purple-700">
+                      {scheme.schemeCategories?.[0] || 'Welfare Scheme'}
                     </span>
 
                     <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black shadow-2xs ${tierInfo.color}`}>
@@ -509,7 +424,11 @@ export function MySchemesPage() {
                   </div>
 
                   {/* Title & Department */}
-                  <Link to={`/schemes/${sid}`} className="group block mb-1">
+                  <Link
+                    to={`/schemes/${sid}`}
+                    state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }}
+                    className="group block mb-1"
+                  >
                     <h3 className="text-lg font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors">
                       {scheme.name}
                     </h3>
@@ -521,25 +440,14 @@ export function MySchemesPage() {
                     <span className="text-2xs font-black uppercase tracking-wider text-primary-700 block mb-0.5">
                       Benefit:
                     </span>
-                    <p className="text-xs font-bold text-navy-900 leading-snug">
-                      {scheme.benefitSummary}
+                    <p className="line-clamp-3 text-xs font-bold leading-snug text-navy-900">
+                      {scheme.benefitSummary || 'See scheme details for information about the benefits.'}
                     </p>
                   </div>
 
-                  {/* Structured Match Reason Box */}
-                  <div className="mb-4 rounded-xl bg-gray-50 p-3.5 border border-gray-100">
-                    <p className="text-2xs font-extrabold uppercase tracking-wider text-navy-600 mb-2">
-                      Why this matches you:
-                    </p>
-                    <ul className="space-y-1.5">
-                      {scheme.matchReasons?.map((reason, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-xs text-navy-700">
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-500 mt-0.5" />
-                          <span>{reason.label}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                  <p className="mb-4 text-xs text-gray-500">
+                    Eligibility details and profile comparison are available on the scheme details page.
+                  </p>
 
                   {/* Application Status Badge if exists */}
                   {appStatus && (
@@ -550,20 +458,15 @@ export function MySchemesPage() {
                   )}
 
                   {/* Deadline Info */}
-                  {scheme.deadline && (
-                    <p className="text-xs font-medium text-gray-400 mb-4 flex items-center gap-1">
-                      <Clock className="h-3.5 w-3.5 text-amber-500" /> Deadline: {scheme.deadline}
-                    </p>
-                  )}
                 </div>
 
                 {/* Card Action Buttons */}
                 <div className="flex gap-2 pt-3 border-t border-gray-100 mt-auto">
-                  <Button to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">
+                  <Button to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
                     View Details
                   </Button>
-                  <Button to={`/schemes/${sid}`} variant="primary" size="sm" className="flex-1 justify-center gap-1">
-                    Apply Now <ArrowRight className="h-4 w-4" />
+                  <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
+                    {applicationUrl ? 'Apply Now' : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               </Card>

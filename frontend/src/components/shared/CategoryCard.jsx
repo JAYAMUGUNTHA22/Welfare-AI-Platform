@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, GraduationCap, Heart, Baby, Users, Stethoscope, Accessibility, Wheat, Briefcase, Home, Wallet, Rocket, Award } from 'lucide-react';
+import { ArrowRight, GraduationCap, Heart, Baby, Users, Stethoscope, Accessibility, Wheat, Briefcase, Home, Wallet, Rocket, Award, MapPin, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
 import { schemes } from '@/data/mockData';
@@ -9,6 +9,21 @@ const iconMap = {
   healthcare: Stethoscope, 'disability-support': Accessibility, agriculture: Wheat,
   employment: Briefcase, housing: Home, 'financial-assistance': Wallet,
   entrepreneurship: Rocket, scholarships: Award,
+  'agriculture-rural-environment': Wheat,
+  'education-learning': GraduationCap,
+  'business-entrepreneurship': Rocket,
+  'social-welfare-empowerment': Wallet,
+  'women-and-child': Heart,
+  'skills-employment': Briefcase,
+  'banking-financial-services-and-insurance': Wallet,
+  'health-wellness': Stethoscope,
+  'sports-culture': Award,
+  'housing-shelter': Home,
+  'science-it-communications': Award,
+  'transport-infrastructure': MapPin,
+  'utility-sanitation': ShieldCheck,
+  'travel-tourism': MapPin,
+  'public-safety-law-justice': ShieldCheck,
 };
 
 export function CategoryCard({ category, onClick }) {

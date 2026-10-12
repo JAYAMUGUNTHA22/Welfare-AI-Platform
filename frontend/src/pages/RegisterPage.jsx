@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ShieldCheck, User, Mail, Phone, MapPin, ArrowRight, Globe, CreditCard, FileText, Users, IndianRupee, Calendar } from 'lucide-react';
+import { ShieldCheck, User, Mail, Phone, MapPin, ArrowRight, Globe, CreditCard, FileText, Users, IndianRupee, Calendar, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { states } from '@/data/mockData';
 import { registerCitizen } from '@/services/api';
@@ -29,6 +29,7 @@ export function RegisterPage() {
       aadharNumber: form.aadharNumber.value.trim(),
       rationCard: form.rationCard.value.trim(),
       age: form.age.value ? Number(form.age.value) : undefined,
+      occupation: form.occupation.value,
       socialCategory: form.socialCategory.value,
       annualIncomeINR: form.annualIncomeINR.value ? Number(form.annualIncomeINR.value) : undefined,
     };
@@ -139,6 +140,18 @@ export function RegisterPage() {
                     {['General', 'OBC', 'SC', 'ST', 'EWS'].map((category) => <option key={category} value={category}>{category}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="occupation" className="label-base">
+                  <Briefcase className="mr-1 inline h-4 w-4" /> {t('profile.occupation')}
+                </label>
+                <select id="occupation" name="occupation" className="input-base">
+                  <option value="">Select your occupation</option>
+                  {['Student', 'Farmer', 'Salaried Employee', 'Self-employed / Entrepreneur', 'Worker / Labourer', 'Unemployed', 'Other'].map((occupation) => (
+                    <option key={occupation} value={occupation}>{occupation}</option>
+                  ))}
+                </select>
               </div>
 
               <div>

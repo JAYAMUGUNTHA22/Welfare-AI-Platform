@@ -20,6 +20,9 @@ export const register = async (req, res) => {
       income,
       annualIncomeINR,
       socialCategory = 'General',
+      isDifferentlyAbled = false,
+      isWidow = false,
+      motherWidowed = false,
       language,
       aadharNumber,
       rationCard,
@@ -42,6 +45,9 @@ export const register = async (req, res) => {
       income,
       annualIncomeINR,
       socialCategory: socialCategory || 'General',
+      isDifferentlyAbled,
+      isWidow,
+      motherWidowed,
       aadharNumber,
       rationCard,
     });
@@ -59,6 +65,9 @@ export const register = async (req, res) => {
         income: citizen.income,
         annualIncomeINR: citizen.annualIncomeINR,
         socialCategory: citizen.socialCategory,
+        isDifferentlyAbled: citizen.isDifferentlyAbled,
+        isWidow: citizen.isWidow,
+        motherWidowed: citizen.motherWidowed,
       },
     });
   } catch (error) {
@@ -89,6 +98,9 @@ export const login = async (req, res) => {
         income: citizen.income,
         annualIncomeINR: citizen.annualIncomeINR,
         socialCategory: citizen.socialCategory || 'General',
+        isDifferentlyAbled: citizen.isDifferentlyAbled,
+        isWidow: citizen.isWidow,
+        motherWidowed: citizen.motherWidowed,
       },
     });
   } catch (error) {

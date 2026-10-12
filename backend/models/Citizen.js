@@ -66,6 +66,18 @@ const citizenSchema = new mongoose.Schema(
       enum: ['General', 'OBC', 'SC', 'ST', 'EWS', ''],
       default: 'General',
     },
+    isDifferentlyAbled: {
+      type: Boolean,
+      default: false,
+    },
+    isWidow: {
+      type: Boolean,
+      default: false,
+    },
+    motherWidowed: {
+      type: Boolean,
+      default: false,
+    },
     annualIncomeINR: {
       type: Number,
       min: 0,

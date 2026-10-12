@@ -1,17 +1,23 @@
-import { User, Mail, Phone, MapPin, Calendar, Globe, Edit, Shield, Users, Sparkles, Banknote, CreditCard, Tag, FileText, RefreshCw } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Calendar, Globe, Edit, Shield, Users, Sparkles, Banknote, CreditCard, Tag, FileText, RefreshCw, Save, X } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
-import { getMe, getExtractedProfileApi } from '@/services/api';
+import { getMe, getExtractedProfileApi, updateCitizen } from '@/services/api';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { states } from '@/data/mockData';
 
 export function ProfilePage() {
   const [profile, setProfile] = useState(null);
   const [docProfile, setDocProfile] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saveSuccess, setSaveSuccess] = useState('');
+  const [editValues, setEditValues] = useState({});
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -52,6 +58,66 @@ export function ProfilePage() {
     setRefreshing(false);
   };
 
+  const startEditing = () => {
+    setSaveError('');
+    setSaveSuccess('');
+    setEditValues({
+      fullName: profile?.fullName || current.name || '',
+      state: profile?.state || '',
+      age: profile?.age ?? '',
+      occupation: profile?.occupation || '',
+      income: profile?.income || '',
+      annualIncomeINR: profile?.annualIncomeINR ?? '',
+      socialCategory: profile?.socialCategory || '',
+      isDifferentlyAbled: Boolean(profile?.isDifferentlyAbled),
+      isWidow: Boolean(profile?.isWidow),
+      motherWidowed: Boolean(profile?.motherWidowed),
+    });
+    setEditing(true);
+  };
+
+  const handleSaveProfile = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+    setSaveError('');
+    setSaveSuccess('');
+    const updates = {
+      fullName: editValues.fullName.trim(),
+      state: editValues.state,
+      age: editValues.age === '' ? null : Number(editValues.age),
+      occupation: editValues.occupation.trim(),
+      income: editValues.income,
+      annualIncomeINR: editValues.annualIncomeINR === '' ? null : Number(editValues.annualIncomeINR),
+      socialCategory: editValues.socialCategory || 'General',
+      isDifferentlyAbled: Boolean(editValues.isDifferentlyAbled),
+      isWidow: Boolean(editValues.isWidow),
+      motherWidowed: Boolean(editValues.motherWidowed),
+    };
+
+    try {
+      const token = localStorage.getItem('token');
+      const citizenId = profile?._id || profile?.id;
+      let savedProfile;
+      if (token && token !== 'demo-token') {
+        if (!citizenId) throw new Error('Your account could not be identified. Please sign in again and retry.');
+        const response = await updateCitizen(citizenId, updates);
+        savedProfile = response.citizen;
+      } else {
+        savedProfile = { ...profile, ...updates };
+      }
+
+      const nextProfile = { ...profile, ...savedProfile, ...updates };
+      setProfile(nextProfile);
+      localStorage.setItem('currentUser', JSON.stringify(nextProfile));
+      setEditing(false);
+      setSaveSuccess(token && token !== 'demo-token' ? 'Profile updated. Your scheme recommendations will use the new details.' : 'Profile saved on this device.');
+    } catch (error) {
+      setSaveError(error.message || 'Could not save your profile. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const fallback = { name: 'Citizen', email: 'No Email', mobile: 'No Mobile', state: 'Unknown', age: 0, occupation: 'None', income: 'None', socialCategory: 'General', language: 'English' };
 
   const current = profile ? {
@@ -64,6 +130,9 @@ export function ProfilePage() {
     income: profile.income || fallback.income,
     annualIncome: profile.annualIncomeINR || docProfile?.annualIncome || null,
     socialCategory: profile.socialCategory || docProfile?.socialCategory || fallback.socialCategory,
+    isDifferentlyAbled: Boolean(profile.isDifferentlyAbled),
+    isWidow: Boolean(profile.isWidow),
+    motherWidowed: Boolean(profile.motherWidowed),
     language: profile.language || fallback.language,
   } : fallback;
 
@@ -76,6 +145,9 @@ export function ProfilePage() {
     { label: t('profile.occupation'),     value: current.occupation,     icon: User },
     { label: t('profile.incomeBracket'),  value: current.income,         icon: Banknote },
     { label: t('profile.socialCategory'), value: current.socialCategory, icon: Users },
+    { label: 'Differently abled', value: current.isDifferentlyAbled ? 'Yes' : 'No', icon: Users },
+    { label: 'Widow', value: current.isWidow ? 'Yes' : 'No', icon: Users },
+    { label: 'Mother is widowed', value: current.motherWidowed ? 'Yes' : 'No', icon: Users },
     { label: t('profile.preferredLanguage'), value: current.language,    icon: Globe },
   ];
 
@@ -101,7 +173,7 @@ export function ProfilePage() {
             <div className="mt-3 flex justify-center">
               <Badge variant="success" icon={<Shield className="h-3.5 w-3.5" />}>{t('common.citizenAccount')}</Badge>
             </div>
-            <Button variant="outline" size="sm" className="mt-6 w-full">
+            <Button variant="outline" size="sm" className="mt-6 w-full" onClick={startEditing}>
               <Edit className="h-4 w-4" /> {t('profile.editProfile')}
             </Button>
           </Card>
@@ -134,6 +206,87 @@ export function ProfilePage() {
 
         {/* Details col */}
         <div className="lg:col-span-2 space-y-4">
+          {saveSuccess && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{saveSuccess}</p>}
+          {editing && (
+            <Card className="p-6">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-navy-900">Edit profile</h3>
+                  <p className="mt-1 text-sm text-gray-500">These details are used to personalize scheme recommendations.</p>
+                </div>
+                <button type="button" onClick={() => setEditing(false)} className="rounded-lg p-2 text-gray-500 hover:bg-gray-100" aria-label="Cancel profile editing">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              {saveError && <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{saveError}</p>}
+              <form onSubmit={handleSaveProfile} className="space-y-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="text-sm font-medium text-navy-700">
+                    Full name
+                    <input required maxLength={120} value={editValues.fullName || ''} onChange={(event) => setEditValues({ ...editValues, fullName: event.target.value })} className="input-base mt-1" />
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    State / Union Territory
+                    <select required value={editValues.state || ''} onChange={(event) => setEditValues({ ...editValues, state: event.target.value })} className="input-base mt-1">
+                      <option value="">Select your state</option>
+                      {states.map((state) => <option key={state} value={state}>{state}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Age
+                    <input type="number" min="1" max="120" value={editValues.age ?? ''} onChange={(event) => setEditValues({ ...editValues, age: event.target.value })} className="input-base mt-1" />
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Occupation
+                    <input value={editValues.occupation || ''} onChange={(event) => setEditValues({ ...editValues, occupation: event.target.value })} className="input-base mt-1" />
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Annual income range
+                    <select value={editValues.income || ''} onChange={(event) => setEditValues({ ...editValues, income: event.target.value })} className="input-base mt-1">
+                      <option value="">Select income range</option>
+                      {['Below ₹1 lakh', '₹1-2.5 lakh', '₹2.5-5 lakh', '₹5-10 lakh', 'Above ₹10 lakh'].map((income) => <option key={income} value={income}>{income}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Exact annual income (₹, optional)
+                    <input type="number" min="0" value={editValues.annualIncomeINR ?? ''} onChange={(event) => setEditValues({ ...editValues, annualIncomeINR: event.target.value })} className="input-base mt-1" />
+                  </label>
+                  <label className="text-sm font-medium text-navy-700 sm:col-span-2">
+                    Social category
+                    <select value={editValues.socialCategory || ''} onChange={(event) => setEditValues({ ...editValues, socialCategory: event.target.value })} className="input-base mt-1">
+                      <option value="">Select category</option>
+                      {['General', 'OBC', 'SC', 'ST', 'EWS'].map((category) => <option key={category} value={category}>{category}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Are you differently abled?
+                    <select value={editValues.isDifferentlyAbled ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isDifferentlyAbled: event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
+                    Are you a widow?
+                    <select value={editValues.isWidow ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isWidow: event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700 sm:col-span-2">
+                    Is your mother widowed?
+                    <select value={editValues.motherWidowed ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, motherWidowed: event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="no">No</option>
+                      <option value="yes">Yes</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="flex flex-wrap justify-end gap-2 pt-2">
+                  <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
+                  <Button type="submit" disabled={saving}><Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save profile'}</Button>
+                </div>
+              </form>
+            </Card>
+          )}
           <Card className="p-6">
             <h3 className="mb-4 text-base font-bold text-navy-900">{t('profile.personalInfo')}</h3>
             <div className="grid gap-4 sm:grid-cols-2">
