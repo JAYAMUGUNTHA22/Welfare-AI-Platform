@@ -44,12 +44,12 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/90 backdrop-blur-md">
       <nav className="container-page flex h-16 items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
+          <div className="landing-brand-icon flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
             <span className="text-lg font-bold text-navy-900">WelfareAI</span>
-            <span className="ml-1.5 hidden text-xs font-medium text-primary-600 sm:inline">
+            <span className="ml-1.5 hidden text-xs font-semibold text-sky-700 sm:inline">
               Discover. Understand. Apply. Track.
             </span>
           </div>
@@ -60,19 +60,21 @@ export function Navbar() {
             <Link
               key={link.label}
               to={link.to}
-              className="rounded-lg px-3 py-2 text-sm font-medium text-navy-600 transition-colors hover:text-primary-700 hover:bg-purple-50/50"
+              className="rounded-xl px-3 py-2.5 text-[15px] font-semibold text-slate-700 transition-colors hover:text-sky-800 hover:bg-sky-50"
             >
-              {t(`nav.${link.label}`, { defaultValue: link.label })}
+              {link.label === 'mySchemes'
+                ? t('menu.mySchemes', { defaultValue: 'My Schemes' })
+                : t(`nav.${link.label}`, { defaultValue: link.label })}
             </Link>
           ))}
 
           {/* Language Dropdown Selector */}
           <div className="relative ml-2">
-            <Globe className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Globe className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-600" />
             <select
               value={i18n.language}
               onChange={(e) => i18n.changeLanguage(e.target.value)}
-              className="rounded-lg border border-gray-200 bg-white py-1.5 pl-8 pr-3 text-sm font-medium text-navy-600 focus:border-primary-500 cursor-pointer"
+              className="rounded-lg border border-sky-100 bg-white py-1.5 pl-8 pr-3 text-sm font-medium text-slate-700 focus:border-sky-400 cursor-pointer"
               aria-label="Select language"
             >
               {supportedLanguages.map((l) => (
@@ -86,7 +88,7 @@ export function Navbar() {
           {/* Login / Profile Actions */}
           {isLoggedIn ? (
             <div className="flex items-center gap-2 ml-2">
-              <Button to="/dashboard" variant="primary" size="sm" className="gap-1.5">
+              <Button to="/dashboard" variant="primary" size="sm" className="landing-nav-primary gap-1.5">
                 <LayoutDashboard className="h-4 w-4" /> {t('nav.dashboard', { defaultValue: 'Dashboard' })}
               </Button>
               <button
@@ -102,7 +104,7 @@ export function Navbar() {
               <Button to="/login" variant="ghost" size="sm">
                 <LogIn className="h-4 w-4" /> {t('login')}
               </Button>
-              <Button to="/register" variant="primary" size="sm">
+              <Button to="/register" variant="primary" size="sm" className="landing-nav-primary">
                 <UserPlus className="h-4 w-4" /> {t('signUp')}
               </Button>
             </div>
@@ -128,13 +130,15 @@ export function Navbar() {
                 key={link.label}
                 to={link.to}
                 onClick={() => setOpen(false)}
-                className="block rounded-lg px-3 py-2.5 text-sm font-medium text-navy-600 hover:bg-primary-50 hover:text-primary-700"
+                className="block rounded-xl px-3 py-3 text-base font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-800"
               >
-                {t(`nav.${link.label}`, { defaultValue: link.label })}
+                {link.label === 'mySchemes'
+                  ? t('menu.mySchemes', { defaultValue: 'My Schemes' })
+                  : t(`nav.${link.label}`, { defaultValue: link.label })}
               </Link>
             ))}
             <div className="flex items-center gap-2 px-3 py-2">
-              <Globe className="h-4 w-4 text-gray-400" />
+              <Globe className="h-4 w-4 text-sky-600" />
               <select
                 value={i18n.language}
                 onChange={(e) => i18n.changeLanguage(e.target.value)}
@@ -151,7 +155,7 @@ export function Navbar() {
 
             {isLoggedIn ? (
               <div className="flex flex-col gap-2 pt-2">
-                <Button to="/dashboard" variant="primary" size="sm" className="w-full justify-center">
+              <Button to="/dashboard" variant="primary" size="sm" className="landing-nav-primary w-full justify-center">
                   <LayoutDashboard className="h-4 w-4" /> {t('nav.dashboard', { defaultValue: 'Dashboard' })}
                 </Button>
                 <Button onClick={handleLogout} variant="outline" size="sm" className="w-full justify-center text-error-600 border-error-200">
@@ -163,7 +167,7 @@ export function Navbar() {
                 <Button to="/login" variant="outline" size="sm" className="flex-1">
                   <LogIn className="h-4 w-4" /> {t('login')}
                 </Button>
-                <Button to="/register" variant="primary" size="sm" className="flex-1">
+                <Button to="/register" variant="primary" size="sm" className="landing-nav-primary flex-1">
                   <UserPlus className="h-4 w-4" /> {t('signUp')}
                 </Button>
               </div>
@@ -173,7 +177,7 @@ export function Navbar() {
               onClick={() => setOpen(false)}
               className="mt-2 flex items-center justify-center gap-2 rounded-lg bg-navy-50 px-3 py-2.5 text-sm font-semibold text-navy-700"
             >
-              <Sparkles className="h-4 w-4 text-accent-500" /> {t('askAssistant')}
+                <Sparkles className="h-4 w-4 text-sky-600" /> {t('askAssistant')}
             </Link>
           </div>
         </div>

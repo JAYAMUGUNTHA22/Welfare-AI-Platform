@@ -228,16 +228,16 @@ export function ComparePage() {
       subtitle="Compare similar welfare schemes side by side and understand which option may work better for your needs."
     >
       {/* SECTION 1: Top Navigation Bar & Dual Path Callout */}
-      <div className="mb-8 rounded-2xl border border-primary-200 bg-gradient-to-r from-purple-950 via-navy-900 to-primary-950 p-6 text-white shadow-lg lg:p-8">
+      <div className="compare-hero mb-8 rounded-2xl border p-6 shadow-lg lg:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1.5 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold text-accent-300 border border-white/20">
-              <Sparkles className="h-3.5 w-3.5 text-accent-400" /> ✨ Find the Right Scheme for You
+            <div className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-sky-700 border border-sky-200">
+              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ Find the Right Scheme for You
             </div>
-            <h2 className="text-2xl font-black text-white sm:text-3xl">
+            <h2 className="text-2xl font-black text-sky-900 sm:text-3xl">
               Choose How You Want to Compare
             </h2>
-            <p className="text-xs text-purple-200 sm:text-sm">
+            <p className="text-xs text-slate-600 sm:text-sm">
               Let WelfareAI automatically detect similar schemes for you, or manually pick the exact schemes you wish to inspect.
             </p>
           </div>
@@ -250,7 +250,7 @@ export function ComparePage() {
               }}
               variant={!isComparing ? 'primary' : 'outline'}
               size="md"
-              className={!isComparing ? 'shadow-md ring-2 ring-white/30' : 'bg-white/10 text-white border-white/30 hover:bg-white/20'}
+              className={!isComparing ? 'shadow-md ring-2 ring-sky-100' : 'bg-white text-sky-800 border-sky-200 hover:bg-sky-50'}
             >
               <Sparkles className="h-4 w-4" /> Smart Similar Suggestions
             </Button>
@@ -259,7 +259,7 @@ export function ComparePage() {
               onClick={() => setManualModalOpen(true)}
               variant="outline"
               size="md"
-              className="bg-white text-navy-900 border-white hover:bg-purple-50 font-extrabold shadow-md cursor-pointer"
+              className="bg-white text-sky-800 border-sky-200 hover:bg-sky-50 font-extrabold shadow-md cursor-pointer"
             >
               <Search className="h-4 w-4 text-primary-600" /> Compare Schemes Manually
             </Button>
@@ -292,13 +292,13 @@ export function ComparePage() {
           </div>
 
           {/* AT A GLANCE SUMMARY BAR */}
-          <div className="rounded-2xl border border-primary-100 bg-gradient-to-r from-purple-50/80 to-primary-50/40 p-5 shadow-xs">
+          <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-5 shadow-xs">
             <h4 className="text-xs font-black uppercase tracking-wider text-primary-800 mb-3 flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary-600" /> At a Glance Key Highlights
             </h4>
             <div className={`grid gap-4 sm:grid-cols-${selectedSchemes.length}`}>
               {selectedSchemes.map((s) => (
-                <div key={s.id || s.schemeId} className="rounded-xl bg-white p-3.5 border border-purple-200 shadow-2xs">
+                <div key={s.id || s.schemeId} className="rounded-xl bg-white p-3.5 border border-sky-200 shadow-2xs">
                   <p className="font-extrabold text-navy-900 text-sm truncate">{s.name}</p>
                   <p className="text-xs font-extrabold text-primary-700 mt-0.5">{s.benefitAmount}</p>
                   <div className="mt-2 space-y-1 text-2xs text-navy-700 font-semibold">
@@ -327,7 +327,7 @@ export function ComparePage() {
                       <th key={s.id || s.schemeId} className="min-w-[240px] p-4 align-top">
                         <div className="flex items-start justify-between gap-2">
                           <div>
-                            <span className="rounded-full bg-purple-100 text-purple-800 text-2xs font-extrabold px-2.5 py-0.5 uppercase block w-fit mb-1">
+                            <span className="rounded-full bg-sky-100 text-sky-800 text-2xs font-extrabold px-2.5 py-0.5 uppercase block w-fit mb-1">
                               {s.category?.replace('-', ' ')}
                             </span>
                             <h4 className="text-base font-extrabold text-navy-900 leading-snug">{s.name}</h4>
@@ -347,7 +347,7 @@ export function ComparePage() {
 
                 <tbody className="divide-y divide-gray-100 text-sm">
                   {/* BENEFITS SECTION */}
-                  <tr className="bg-purple-50/30">
+                  <tr className="bg-sky-50/60">
                     <td className="p-4 font-extrabold text-navy-900 flex items-center gap-1.5">
                       <Wallet className="h-4 w-4 text-primary-600" /> Benefit Amount & Summary
                     </td>
@@ -501,7 +501,7 @@ export function ComparePage() {
 
           {/* ✨ SECTION: WHICH MAY BE BETTER FOR YOU? */}
           {rationale && (
-            <Card className="p-6 border-2 border-primary-200 bg-gradient-to-br from-purple-50 via-white to-primary-50/40 shadow-card">
+            <Card className="p-6 border-2 border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-card">
               <div className="mb-4 flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
                   <Sparkles className="h-5 w-5" />
@@ -528,7 +528,7 @@ export function ComparePage() {
                   </ul>
                 </div>
               ) : (
-                <div className="mb-6 rounded-xl border border-purple-200 bg-purple-50/60 p-4">
+                <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50/70 p-4">
                   <p className="text-sm font-bold text-navy-900">
                     Both schemes offer distinct advantages. The better choice depends on what matters most to your needs.
                   </p>
@@ -569,7 +569,7 @@ export function ComparePage() {
 
                 {rationale.easyAppScheme && (
                   <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-extrabold uppercase tracking-wider text-purple-700 block mb-1">
+                    <span className="text-2xs font-extrabold uppercase tracking-wider text-sky-700 block mb-1">
                       Best for Easy Application
                     </span>
                     <p className="text-xs font-bold text-navy-900">{rationale.easyAppScheme.name}</p>
@@ -628,7 +628,7 @@ export function ComparePage() {
                             <p className="text-2xs text-gray-500">{group.totalCount} similar schemes</p>
                           </div>
                         </div>
-                        <span className="rounded-full bg-purple-50 text-purple-700 text-2xs font-extrabold px-2.5 py-1 border border-purple-200">
+                        <span className="rounded-full bg-sky-50 text-sky-700 text-2xs font-extrabold px-2.5 py-1 border border-sky-200">
                           Smart Match
                         </span>
                       </div>
@@ -644,7 +644,7 @@ export function ComparePage() {
                       </div>
 
                       {/* Similarity Explanation */}
-                      <div className="mb-5 rounded-xl bg-purple-50/50 p-3 border border-purple-100">
+                      <div className="mb-5 rounded-xl bg-sky-50/70 p-3 border border-sky-100">
                         <p className="text-2xs font-extrabold uppercase tracking-wider text-primary-800 mb-1">
                           Similar because:
                         </p>
@@ -710,7 +710,7 @@ export function ComparePage() {
             </div>
 
             {/* Selection Status & Chips */}
-            <div className="mb-4 rounded-xl bg-purple-50/60 p-3 border border-purple-100">
+            <div className="mb-4 rounded-xl bg-sky-50/70 p-3 border border-sky-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-extrabold text-primary-900">
                   Selected Schemes ({selectedIds.length}/3):
@@ -771,8 +771,8 @@ export function ComparePage() {
                       key={sid}
                       className={`flex items-center justify-between rounded-xl p-3 border transition-colors ${
                         isSelected
-                          ? 'border-primary-400 bg-purple-50/50'
-                          : 'border-gray-100 bg-gray-50/50 hover:bg-purple-50/30'
+                          ? 'border-sky-400 bg-sky-50/70'
+                          : 'border-gray-100 bg-gray-50/50 hover:bg-sky-50/50'
                       }`}
                     >
                       <div className="min-w-0 pr-2">

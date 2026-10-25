@@ -2,7 +2,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, requireDocumentVerification } from '../middleware/auth.js';
 import {
   getUserDocuments,
   uploadDocument,
@@ -42,7 +42,7 @@ const upload = multer({
 
 const router = Router();
 
-router.use(authenticate);
+router.use(authenticate, requireDocumentVerification);
 
 router.get('/',                 getUserDocuments);
 router.post('/',                upload.single('file'), uploadDocument);

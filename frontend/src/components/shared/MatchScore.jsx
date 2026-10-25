@@ -9,8 +9,8 @@ const sizeConfig = {
 export function MatchScore({ score, size = 'md', showLabel = true, scoreLabel }) {
   const { t } = useTranslation();
   const { ring, text, label } = sizeConfig[size];
-  const color = score >= 85 ? 'text-primary-600' : score >= 70 ? 'text-accent-600' : 'text-navy-500';
-  const stroke = score >= 85 ? '#059669' : score >= 70 ? '#d97706' : '#5e7799';
+  const color = score > 50 ? 'text-emerald-700' : 'text-red-700';
+  const stroke = score > 50 ? '#059669' : '#dc2626';
   const circumference = 2 * Math.PI * 18;
   const offset = circumference - (score / 100) * circumference;
 

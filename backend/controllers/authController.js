@@ -111,3 +111,44 @@ export const login = async (req, res) => {
 export const getMe = async (req, res) => {
   res.json({ user: req.user });
 };
+
+export const verifyDocumentPassword = async (req, res) => {
+  try {
+    const password = req.body?.password;
+    if (typeof password !== 'string' || !password) {
+      return res.status(400).json({ message: 'Enter your password to continue' });
+    }
+
+    const citizen = await Citizen.findById(req.user._id).select('+password');
+    if (!citizen || !(await citizen.comparePassword(password))) {
+      return res.status(401).json({ message: 'The password is incorrect. Please try again.' });
+    }
+
+    const accessToken = jwt.sign(
+      { id: String(citizen._id), purpose: 'document-access' },
+      process.env.JWT_SECRET || 'fallback_secret',
+      { expiresIn: '10m' },
+    );
+    res.cookie('documentAccess', accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 10 * 60 * 1000,
+      path: '/api/documents',
+    });
+    return res.json({ message: 'Identity verified', expiresIn: 600 });
+  } catch (error) {
+    console.error('Error verifying document access:', error.message);
+    return res.status(500).json({ message: 'Could not verify your identity right now' });
+  }
+};
+
+export const lockDocumentAccess = (_req, res) => {
+  res.clearCookie('documentAccess', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/documents',
+  });
+  res.json({ message: 'Document access locked' });
+};

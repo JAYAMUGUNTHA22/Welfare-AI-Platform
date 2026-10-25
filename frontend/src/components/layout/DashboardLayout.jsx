@@ -9,7 +9,7 @@ import { getMe, updateCitizen } from '@/services/api';
 import { useTranslation } from 'react-i18next';
 
 const navItems = [
-  { label: 'home', to: '/dashboard', icon: Home },
+  { label: 'dashboard', to: '/dashboard', icon: Home },
   { label: 'mySchemes', to: '/my-schemes', icon: Sparkles },
   { label: 'myApplications', to: '/applications', icon: FileText },
   { label: 'myBenefits', to: '/benefits', icon: Wallet },
@@ -59,12 +59,12 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
   }, [user?.language, i18n]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen dashboard-theme">
       {/* Mobile Top Header */}
       <div className="sticky top-0 z-40 flex h-14 items-center justify-between border-b border-gray-200 bg-white px-4 lg:hidden">
         <button onClick={() => setSidebarOpen(true)} aria-label="Open menu"><Menu className="h-6 w-6 text-navy-700" /></button>
         <Link to="/dashboard" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><ShieldCheck className="h-4 w-4" /></div>
+          <div className="dashboard-brand-icon flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white"><ShieldCheck className="h-4 w-4" /></div>
           <span className="font-bold text-navy-900">WelfareAI</span>
         </Link>
 
@@ -108,8 +108,8 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
       {/* Mobile Drawer */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-navy-950/40 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
-          <div className="absolute left-0 top-0 h-full w-72 max-w-[85%] bg-navy-900 shadow-xl animate-slide-down">
+          <div className="absolute inset-0 bg-sky-950/20 backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />
+          <div className="dashboard-sidebar absolute left-0 top-0 h-full w-72 max-w-[85%] bg-white shadow-xl animate-slide-down">
             <SidebarContent user={user} location={location} onClose={() => setSidebarOpen(false)} onLogout={() => { localStorage.removeItem('token'); navigate('/'); }} />
           </div>
         </div>
@@ -117,7 +117,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
 
       <div className="flex">
         {/* Desktop Sidebar */}
-        <aside className="sticky top-0 hidden h-screen w-64 shrink-0 bg-navy-900 lg:block">
+        <aside className="dashboard-sidebar sticky top-0 hidden h-screen w-64 shrink-0 bg-white lg:block">
           <SidebarContent user={user} location={location} onLogout={() => { localStorage.removeItem('token'); navigate('/'); }} />
         </aside>
 
@@ -159,14 +159,14 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
                       <div className="border-b border-gray-100 pb-3 mb-2 px-2">
                         <p className="font-bold text-navy-900 text-sm truncate">{user?.fullName || 'Citizen User'}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email || 'citizen@welfare.gov.in'}</p>
-                        <span className="mt-1 inline-block rounded-full bg-purple-50 text-primary-700 text-2xs font-extrabold px-2 py-0.5 border border-purple-200">
+                        <span className="mt-1 inline-block rounded-full bg-sky-50 text-primary-700 text-2xs font-extrabold px-2 py-0.5 border border-sky-200">
                           {t('common.citizenAccount', { defaultValue: 'Citizen Account' })}
                         </span>
                       </div>
                       <Link
                         to="/profile"
                         onClick={() => setProfileMenuOpen(false)}
-                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-navy-700 hover:bg-purple-50 hover:text-primary-700 transition-colors"
+                        className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-navy-700 hover:bg-sky-50 hover:text-primary-700 transition-colors"
                       >
                         <User className="h-4 w-4 text-primary-600" />
                         {t('menu.profile', { defaultValue: 'Profile' })}
@@ -210,11 +210,11 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
 function SidebarContent({ user, location, onClose, onLogout }) {
   const { t } = useTranslation();
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex h-16 items-center justify-between border-b border-white/10 px-5">
+      <div className="flex h-full flex-col">
+      <div className="flex h-16 items-center justify-between border-b border-sky-100 px-5">
         <Link to="/dashboard" onClick={onClose} className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white"><ShieldCheck className="h-5 w-5" /></div>
-          <span className="text-lg font-bold text-white">WelfareAI</span>
+          <div className="dashboard-brand-icon flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white"><ShieldCheck className="h-5 w-5" /></div>
+          <span className="text-lg font-bold text-navy-900">WelfareAI</span>
         </Link>
         {onClose && <button onClick={onClose} aria-label="Close menu"><X className="h-5 w-5 text-gray-400" /></button>}
       </div>
@@ -235,7 +235,7 @@ function SidebarContent({ user, location, onClose, onLogout }) {
       {/* Admin Dashboard preserved in Sidebar Bottom */}
 
       
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-sky-100 p-3">
         {/* <div className="mb-2 flex items-center gap-3 rounded-xl bg-white/10 px-3 py-2.5"> */}
           {/* <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-100 text-primary-700 text-sm font-bold">
             {user?.fullName?.[0]?.toUpperCase() || 'U'}

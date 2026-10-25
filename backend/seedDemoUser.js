@@ -6,8 +6,13 @@ const seedDemoUser = async () => {
   try {
     await connectDB();
 
-    const existing = await Citizen.findOne({ email: 'demo@welfareai.in' });
+    const existing = await Citizen.findOne({ email: 'demo@welfareai.in' }).select('+password');
     if (existing) {
+      if (!(await existing.comparePassword('Demo@1234'))) {
+        existing.password = 'Demo@1234';
+        await existing.save();
+        console.log('✅ Demo account password restored.');
+      }
       console.log('✅ Demo user already exists — email: demo@welfareai.in | password: Demo@1234');
       process.exit(0);
     }

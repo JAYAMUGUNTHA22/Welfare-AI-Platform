@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 const schemeSchema = new mongoose.Schema(
   {
     schemeId: { type: String, required: true },
+    myschemeSlug: { type: String },
+    level: { type: String },
+    tags: [{ type: String }],
     name: { type: String, required: true },
     provider: { type: String, required: true },
     providerType: { type: String },
@@ -28,9 +31,13 @@ const schemeSchema = new mongoose.Schema(
         operator: { type: String },
         value: { type: mongoose.Schema.Types.Mixed },
       }
-    ]
+    ],
+    // Keep the complete source record so fields added to the catalogue are not lost.
+    sourceData: { type: mongoose.Schema.Types.Mixed },
   },
   { timestamps: true }
 );
+
+schemeSchema.index({ schemeId: 1 }, { unique: true });
 
 export const Scheme = mongoose.model('Scheme', schemeSchema);

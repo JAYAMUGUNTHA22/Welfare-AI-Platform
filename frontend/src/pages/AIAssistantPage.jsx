@@ -126,7 +126,7 @@ export function AIAssistantPage() {
       <div className="flex h-[calc(100vh-170px)] min-h-[500px] flex-col rounded-2xl border border-gray-200 bg-white shadow-card overflow-hidden">
         
         {/* Chat Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-purple-50/80 to-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-gray-100 bg-gradient-to-r from-sky-50/80 to-white px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
               <Bot className="h-5 w-5" />
@@ -164,7 +164,7 @@ export function AIAssistantPage() {
               <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                 msg.role === 'user'
                   ? 'bg-primary-600 text-white'
-                  : 'bg-purple-100 text-primary-700'
+                  : 'bg-sky-100 text-primary-700'
               }`}>
                 {msg.role === 'user' ? <User className="h-5 w-5" /> : <Bot className="h-5 w-5" />}
               </div>
@@ -186,7 +186,7 @@ export function AIAssistantPage() {
           {/* Typing Indicator State */}
           {isTyping && (
             <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-purple-100 text-primary-700">
+              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-sky-100 text-primary-700">
                 <Bot className="h-5 w-5" />
               </div>
               <div className="rounded-2xl rounded-tl-none border border-gray-200 bg-white px-5 py-3 shadow-xs">

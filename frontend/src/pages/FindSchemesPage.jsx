@@ -10,7 +10,7 @@ import { SchemeCard } from '@/components/shared/SchemeCard';
 import { Button } from '@/components/ui/Button';
 import { categories as mockCategories, states, occupations, incomeBrackets, schemes as mockSchemes } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
-import { getAllSchemes, getMe } from '@/services/api';
+import { getAllSchemes, getMe, saveSchemeRecommendations } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
 import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
 import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
@@ -151,7 +151,15 @@ export function FindSchemesPage() {
           ...situationForm,
           age: Number(situationForm.age) || null,
         });
-        if (current) setRecommendedSchemes(matches);
+        if (current) {
+          setRecommendedSchemes(matches);
+          await saveSchemeRecommendations({
+            ...situationForm,
+            age: Number(situationForm.age) || null,
+            fullName: cachedProfile?.fullName || '',
+            annualIncomeINR: cachedProfile?.annualIncomeINR,
+          }, matches);
+        }
       } catch (error) {
         console.error('Could not evaluate scheme eligibility against the profile', error);
         if (current) setFormError('We could not evaluate schemes right now. Please try again.');
@@ -368,14 +376,14 @@ export function FindSchemesPage() {
         {formSubmitted && (
           <div className="mb-14 animate-slide-down">
             {/* Active Criteria Header Banner */}
-            <div className="mb-6 rounded-2xl border border-primary-200 bg-gradient-to-r from-purple-950 via-navy-900 to-primary-950 p-6 text-white shadow-lg">
+            <div className="mb-6 rounded-2xl border border-primary-200 bg-gradient-to-r from-sky-600 via-blue-700 to-sky-800 p-6 text-white shadow-lg">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-accent-400" />
                     <h2 className="text-2xl font-black text-white">{t('recommendedForYou')}</h2>
                   </div>
-                  <p className="mt-1 text-xs text-purple-200">
+                  <p className="mt-1 text-xs text-sky-200">
                     Suggestions ranked against the available age, income, occupation, category, and location criteria. Confirm eligibility on the official website.
                   </p>
                 </div>
@@ -431,7 +439,7 @@ export function FindSchemesPage() {
                       <div>
                         {/* Header: Score Badge & Category */}
                         <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                          <span className="truncate rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-xs font-extrabold text-primary-700 capitalize">
+                          <span className="truncate rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-xs font-extrabold text-primary-700 capitalize">
                             {scheme.schemeCategories?.[0] || 'Government Scheme'}
                           </span>
 
@@ -456,7 +464,7 @@ export function FindSchemesPage() {
                         <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
 
                         {/* Key Benefit Highlight Box */}
-                        <div className="mb-4 rounded-xl border border-primary-100 bg-gradient-to-r from-purple-50 to-primary-50/40 p-3.5">
+                        <div className="mb-4 rounded-xl border border-primary-100 bg-gradient-to-r from-sky-50 to-primary-50/40 p-3.5">
                           <span className="text-2xs font-extrabold uppercase tracking-wider text-primary-700 block mb-0.5">
                             Primary Benefit:
                           </span>
@@ -509,7 +517,7 @@ export function FindSchemesPage() {
 
           {/* Category Banner if Category is selected */}
           {selectedCategory && (
-            <div className="mb-6 rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-900 via-navy-900 to-purple-950 p-6 text-white shadow-md flex items-center justify-between">
+            <div className="mb-6 rounded-2xl border border-primary-200 bg-gradient-to-r from-sky-600 via-blue-700 to-sky-800 p-6 text-white shadow-md flex items-center justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <span className="rounded-full bg-white/20 px-3 py-1 text-2xs font-extrabold uppercase tracking-wider text-white">
@@ -519,7 +527,7 @@ export function FindSchemesPage() {
                 <h3 className="text-xl font-extrabold text-white capitalize">
                   {allCategoriesList.find(c => c.id.toLowerCase() === selectedCategory.toLowerCase())?.name || selectedCategory.replace('-', ' ')} Schemes
                 </h3>
-                <p className="mt-1 text-xs text-purple-200">
+                <p className="mt-1 text-xs text-sky-200">
                   Showing {gallerySchemes.length} official welfare scheme{gallerySchemes.length !== 1 ? 's' : ''} available under this category.
                 </p>
               </div>
@@ -551,7 +559,7 @@ export function FindSchemesPage() {
                 className={`rounded-full border px-4 py-2 text-xs font-bold transition-all ${
                   selectedCategory === cat.id
                     ? 'border-primary-600 bg-primary-600 text-white shadow-sm'
-                    : 'border-gray-200 bg-white text-navy-700 hover:border-primary-300 hover:bg-purple-50/50'
+                    : 'border-gray-200 bg-white text-navy-700 hover:border-primary-300 hover:bg-sky-50/50'
                 }`}
               >
                 {cat.name}

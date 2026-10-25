@@ -65,7 +65,7 @@ export function DocumentInfoPanel({ document, onExtracted }) {
   };
 
   return (
-    <div className="mt-2 rounded-xl border border-purple-100 bg-gradient-to-br from-purple-50/60 to-white overflow-hidden">
+    <div className="mt-2 rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50/60 to-white overflow-hidden">
       {/* Header trigger row */}
       <div
         className="flex items-center justify-between gap-2 px-3 py-2.5 cursor-pointer select-none"
@@ -148,7 +148,7 @@ export function DocumentInfoPanel({ document, onExtracted }) {
           )}
 
           <div className="col-span-2 mt-1 flex items-center gap-1 text-[10px] text-gray-400 italic">
-            <Sparkles className="h-3 w-3 text-purple-400" />
+            <Sparkles className="h-3 w-3 text-sky-400" />
             {t('extractedNote', { defaultValue: 'Auto-extracted. Verify before use.' })}
           </div>
         </div>
@@ -159,7 +159,7 @@ export function DocumentInfoPanel({ document, onExtracted }) {
 
 function ExtractedField({ icon, label, value, fullWidth }) {
   return (
-    <div className={`rounded-lg bg-white border border-purple-100 px-2.5 py-2 ${fullWidth ? 'col-span-2' : ''}`}>
+    <div className={`rounded-lg bg-white border border-sky-100 px-2.5 py-2 ${fullWidth ? 'col-span-2' : ''}`}>
       <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
         <span className="text-primary-500">{icon}</span>
         {label}

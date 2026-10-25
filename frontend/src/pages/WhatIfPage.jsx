@@ -159,18 +159,18 @@ export function WhatIfPage() {
     >
       <div className="space-y-6">
         {/* Top Header Section with Real User Info */}
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl bg-gradient-to-r from-primary-900 via-navy-900 to-primary-800 p-6 text-white shadow-lg">
+        <div className="whatif-hero flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl border border-sky-100 p-6 shadow-lg">
           <div>
             <div className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-accent-400 animate-spin" />
-              <h2 className="text-xl font-bold">Real Eligibility Simulation Engine</h2>
+              <Sparkles className="h-5 w-5 text-sky-600" />
+              <h2 className="text-xl font-bold text-sky-900">Real Eligibility Simulation Engine</h2>
             </div>
-            <p className="mt-1 text-sm text-gray-200">
+            <p className="mt-1 text-sm text-slate-600">
               Simulates your profile against active welfare schemes in MongoDB Atlas.
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="sm" onClick={handleReset} className="border-white/30 text-white hover:bg-white/10">
+            <Button variant="outline" size="sm" onClick={handleReset} className="border-sky-200 bg-white text-sky-800 hover:bg-sky-50">
               <RotateCcw className="h-4 w-4" /> Reset to Actual Profile
             </Button>
           </div>

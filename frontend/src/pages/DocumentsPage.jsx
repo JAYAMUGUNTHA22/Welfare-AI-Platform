@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Upload, FolderOpen, CheckCircle2, AlertCircle, LogIn, Sparkles,
-  User, Banknote, CreditCard, Tag, Shield
+  User, Banknote, CreditCard, Tag, Shield, ShieldCheck, LockKeyhole
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { DocumentCard } from '@/components/shared/DocumentCard';
@@ -16,8 +16,10 @@ import {
   uploadDocumentApi,
   updateDocumentApi,
   deleteDocumentApi,
-  getDocumentFileUrl,
+  getDocumentFileApi,
   getExtractedProfileApi,
+  verifyDocumentPassword,
+  lockDocumentAccess,
 } from '@/services/api';
 
 export function DocumentsPage() {
@@ -27,6 +29,10 @@ export function DocumentsPage() {
   const [docList,      setDocList]      = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [notLoggedIn,  setNotLoggedIn]  = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
+  const [verificationPassword, setVerificationPassword] = useState('');
+  const [verificationError, setVerificationError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
   const [activeCategory, setActiveCategory] = useState('all');
   const [extractedProfile, setExtractedProfile] = useState(null);
 
@@ -84,7 +90,47 @@ export function DocumentsPage() {
     }
   };
 
-  useEffect(() => { loadDocuments(); }, []);
+  useEffect(() => {
+    setNotLoggedIn(!isAuthenticated());
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (!isVerified) return undefined;
+    const handleExpiredAccess = () => {
+      setIsVerified(false);
+      setDocList([]);
+      setExtractedProfile(null);
+      setPreviewDoc(null);
+      setShowUploadModal(false);
+      setEditingDoc(null);
+      setDeletingDoc(null);
+      setVerificationError('Your document verification expired. Enter your password again.');
+    };
+    window.addEventListener('document-access-expired', handleExpiredAccess);
+    const expiryTimer = window.setTimeout(handleExpiredAccess, 10 * 60 * 1000);
+    return () => {
+      window.removeEventListener('document-access-expired', handleExpiredAccess);
+      window.clearTimeout(expiryTimer);
+      void lockDocumentAccess();
+    };
+  }, [isVerified]);
+
+  const handleVerifyIdentity = async (event) => {
+    event.preventDefault();
+    setIsVerifying(true);
+    setVerificationError('');
+    try {
+      await verifyDocumentPassword(verificationPassword);
+      setVerificationPassword('');
+      setIsVerified(true);
+      await loadDocuments();
+    } catch (error) {
+      setVerificationError(error.message || 'We could not verify your password. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
 
   // Called when a document's extraction is updated
   const handleExtracted = async (doc, result) => {
@@ -149,7 +195,7 @@ export function DocumentsPage() {
     }
   };
 
-  const handleDownload = (doc) => {
+  const handleDownload = async (doc) => {
     if (doc.fileDataUrl) {
       const link = document.createElement('a');
       link.href = doc.fileDataUrl;
@@ -158,7 +204,19 @@ export function DocumentsPage() {
       link.click();
       document.body.removeChild(link);
     } else if (doc._id) {
-      window.open(getDocumentFileUrl(doc._id, true), '_blank');
+      try {
+        const blob = await getDocumentFileApi(doc._id);
+        const objectUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = objectUrl;
+        link.download = doc.originalFilename || `${doc.name}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+      } catch (error) {
+        showToast(error.message || 'Could not download this document.', 'error');
+      }
     }
   };
 
@@ -171,7 +229,7 @@ export function DocumentsPage() {
     if (!extractedProfile || extractedProfile.extractedFields?.length === 0) return null;
     const ep = extractedProfile;
     return (
-      <div className="mb-6 rounded-2xl border border-primary-100 bg-gradient-to-r from-violet-50 via-purple-50 to-white p-4 shadow-sm">
+      <div className="mb-6 rounded-2xl border border-primary-100 bg-gradient-to-r from-sky-50 via-sky-50 to-white p-4 shadow-sm">
         <div className="flex items-center gap-2 mb-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-600 text-white">
             <Sparkles className="h-4 w-4" />
@@ -197,7 +255,7 @@ export function DocumentsPage() {
 
   function ProfileChip({ icon, label, value }) {
     return (
-      <div className="rounded-xl bg-white border border-purple-100 px-3 py-2">
+      <div className="rounded-xl bg-white border border-sky-100 px-3 py-2">
         <div className="flex items-center gap-1 text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-0.5">
           <span className="text-primary-500">{icon}</span> {label}
         </div>
@@ -209,7 +267,7 @@ export function DocumentsPage() {
   return (
     <DashboardLayout title={t('documentVaultTitle')} subtitle={t('documentVaultSubtitle')}>
       {/* Toast */}
-      {toast && (
+      {isVerified && toast && (
         <div className={`mb-5 flex items-center justify-between gap-3 rounded-xl p-4 border shadow-sm animate-slide-down ${
           toast.type === 'error' ? 'bg-error-50 text-error-800 border-error-200' : 'bg-success-50 text-success-800 border-success-200'
         }`}>
@@ -225,10 +283,10 @@ export function DocumentsPage() {
       )}
 
       {/* Extracted profile summary */}
-      {!notLoggedIn && !loading && <ProfileSummaryBanner />}
+      {isVerified && !loading && <ProfileSummaryBanner />}
 
       {/* Filter + Upload bar */}
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {isVerified && <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2">
           {categories.map(cat => (
             <button
@@ -237,7 +295,7 @@ export function DocumentsPage() {
               className={`rounded-full border px-3.5 py-1.5 text-xs font-bold transition-all ${
                 activeCategory === cat.key
                   ? 'border-primary-600 bg-primary-600 text-white shadow-sm'
-                  : 'border-gray-200 bg-white text-navy-700 hover:border-primary-300 hover:bg-purple-50/50'
+                  : 'border-gray-200 bg-white text-navy-700 hover:border-primary-300 hover:bg-sky-50/50'
               }`}
             >
               {t(cat.labelKey, { defaultValue: cat.key })}
@@ -259,7 +317,24 @@ export function DocumentsPage() {
           <Upload className="h-4 w-4" />
           {t('uploadDocument')}
         </Button>
-      </div>
+        <Button
+          variant="outline"
+          onClick={() => {
+            setIsVerified(false);
+            setDocList([]);
+            setExtractedProfile(null);
+            setPreviewDoc(null);
+            setShowUploadModal(false);
+            setEditingDoc(null);
+            setDeletingDoc(null);
+            setVerificationPassword('');
+            setVerificationError('');
+          }}
+          className="gap-2 shrink-0"
+        >
+          <LockKeyhole className="h-4 w-4" /> Lock Documents
+        </Button>
+      </div>}
 
       {/* Content */}
       {loading ? (
@@ -289,6 +364,39 @@ export function DocumentsPage() {
               {t('signUp', { defaultValue: 'Register here' })}
             </a>
           </p>
+        </div>
+      ) : !isVerified ? (
+        <div className="mx-auto max-w-md rounded-2xl border border-primary-100 bg-white p-6 shadow-card sm:p-8">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-700">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+          <h2 className="mt-4 text-center text-xl font-extrabold text-navy-900">Verify it’s you</h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Enter your account password to view or upload sensitive documents. Verification expires after 10 minutes.
+          </p>
+          <form onSubmit={handleVerifyIdentity} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="documents-password" className="label-base">Account password</label>
+              <input
+                id="documents-password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={verificationPassword}
+                onChange={(event) => setVerificationPassword(event.target.value)}
+                className="input-base"
+                placeholder="Enter your password"
+              />
+            </div>
+            {verificationError && (
+              <p role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {verificationError}
+              </p>
+            )}
+            <Button type="submit" disabled={isVerifying || !verificationPassword} className="w-full gap-2">
+              {isVerifying ? 'Verifying…' : <><ShieldCheck className="h-4 w-4" /> Verify and continue</>}
+            </Button>
+          </form>
         </div>
       ) : filtered.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white py-16 text-center shadow-xs">

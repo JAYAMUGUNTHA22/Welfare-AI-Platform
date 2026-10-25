@@ -10,7 +10,7 @@ export function Footer() {
         <div className="grid gap-8 md:grid-cols-4">
           <div className="md:col-span-2">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white"><ShieldCheck className="h-5 w-5" /></div>
+              <div className="landing-brand-icon flex h-9 w-9 items-center justify-center rounded-xl bg-primary-600 text-white"><ShieldCheck className="h-5 w-5" /></div>
               <span className="text-lg font-bold text-navy-900">WelfareAI</span>
             </div>
             <p className="mt-3 max-w-md text-sm text-gray-500 leading-relaxed">{t('landingSub')}</p>

@@ -6,7 +6,7 @@ import {
   Sparkles, Calendar, CreditCard, Banknote, Tag, MapPin, User
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getDocumentFileUrl } from '@/services/api';
+import { getDocumentFileApi } from '@/services/api';
 
 const mapDocKey = (name) => {
   const map = {
@@ -39,14 +39,28 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
 
   useEffect(() => {
     if (!document) return;
+    let active = true;
+    let objectUrl = '';
+    setFileUrl('');
+    setLoadError(false);
     if (document.fileDataUrl) {
       setFileUrl(document.fileDataUrl);
     } else if (document._id) {
-      setFileUrl(getDocumentFileUrl(document._id));
+      getDocumentFileApi(document._id)
+        .then((blob) => {
+          objectUrl = URL.createObjectURL(blob);
+          if (active) setFileUrl(objectUrl);
+        })
+        .catch(() => {
+          if (active) setLoadError(true);
+        });
     } else {
-      setFileUrl('');
+      setLoadError(true);
     }
-    setLoadError(false);
+    return () => {
+      active = false;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [document]);
 
   if (!document) return null;
@@ -62,12 +76,16 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
     if (onDownload) {
       onDownload(document);
     } else {
-      const link = globalThis.document.createElement('a');
-      link.href = fileUrl || getDocumentFileUrl(document._id, true);
-      link.download = document.originalFilename || `${document.name}.${isPdf ? 'pdf' : 'png'}`;
-      globalThis.document.body.appendChild(link);
-      link.click();
-      globalThis.document.body.removeChild(link);
+      getDocumentFileApi(document._id).then((blob) => {
+        const objectUrl = URL.createObjectURL(blob);
+        const link = globalThis.document.createElement('a');
+        link.href = objectUrl;
+        link.download = document.originalFilename || `${document.name}.${isPdf ? 'pdf' : 'png'}`;
+        globalThis.document.body.appendChild(link);
+        link.click();
+        globalThis.document.body.removeChild(link);
+        URL.revokeObjectURL(objectUrl);
+      }).catch(() => setLoadError(true));
     }
   };
 
@@ -93,7 +111,7 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
     <Modal open={open} onClose={onClose} title={t('previewTitle')}>
       <div className="space-y-5">
         {/* Header bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-purple-50 p-3.5 border border-purple-100">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-sky-50 p-3.5 border border-sky-100">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
               <FileText className="h-5 w-5" />
@@ -195,7 +213,7 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
 
         {/* AI-Extracted Details — shown whenever extractedData has any field */}
         {extractedFields.length > 0 && (
-          <div className="rounded-xl border border-purple-100 bg-gradient-to-br from-violet-50 to-white p-4 space-y-3">
+          <div className="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-4 space-y-3">
             <h4 className="text-xs font-bold uppercase tracking-wider text-primary-700 flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary-600" />
               {t('aiExtracted', { defaultValue: 'AI-Extracted Details' })}
@@ -209,7 +227,7 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
               {extractedFields.map((field, i) => (
                 <div
                   key={i}
-                  className={`rounded-lg bg-white border border-purple-100 px-2.5 py-2 ${field.wide ? 'col-span-2 sm:col-span-3' : ''}`}
+                  className={`rounded-lg bg-white border border-sky-100 px-2.5 py-2 ${field.wide ? 'col-span-2 sm:col-span-3' : ''}`}
                 >
                   <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
                     <span className="text-primary-500">{field.icon}</span>
@@ -220,7 +238,7 @@ export function DocumentPreviewModal({ open, onClose, document, onReplace, onDow
               ))}
             </div>
             <p className="text-[10px] text-gray-400 italic flex items-center gap-1">
-              <Sparkles className="h-2.5 w-2.5 text-purple-400" />
+              <Sparkles className="h-2.5 w-2.5 text-sky-400" />
               {t('extractedNote', { defaultValue: 'Auto-extracted. Verify before use.' })}
             </p>
           </div>

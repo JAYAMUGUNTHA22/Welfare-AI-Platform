@@ -11,9 +11,10 @@ export function BenefitCard({ benefit }) {
   const { t } = useTranslation();
   const remaining = benefit.expectedAmount - benefit.receivedAmount;
   const pct = benefit.expectedAmount > 0 ? (benefit.receivedAmount / benefit.expectedAmount) * 100 : 0;
+  const installments = Array.isArray(benefit.installments) ? benefit.installments : [];
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-card transition-all hover:shadow-card-hover">
+    <div className="benefit-rich-card rounded-2xl border border-sky-100 bg-white p-5 shadow-card transition-all hover:shadow-card-hover">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-navy-900">{t(`schemeData.${benefit.schemeName}`, { defaultValue: benefit.schemeName })}</h3>
@@ -39,11 +40,11 @@ export function BenefitCard({ benefit }) {
 
       <div className="mt-4"><ProgressBar value={pct} size="sm" barClassName="bg-success-500" /></div>
 
-      {benefit.installments.length > 0 && (
+      {installments.length > 0 && (
         <div className="mt-4 border-t border-gray-100 pt-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('installments')}</p>
           <div className="space-y-2">
-            {benefit.installments.map((inst, i) => (
+            {installments.map((inst, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
                 <span className="flex items-center gap-2 text-navy-600"><Clock className="h-3.5 w-3.5 text-gray-400" />{inst.date}</span>
                 <span className="flex items-center gap-2">

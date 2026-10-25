@@ -35,7 +35,7 @@ const iconMap = {
   'public-safety-law-justice': ShieldCheck,
 };
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 10;
 
 export function CategoryPage() {
   const { id } = useParams();
@@ -125,7 +125,7 @@ export function CategoryPage() {
         </div>
 
         {/* Hero */}
-        <div className="mb-10 overflow-hidden rounded-3xl border border-primary-200 bg-gradient-to-br from-navy-950 via-navy-900 to-primary-950 text-white shadow-xl">
+        <div className="mb-10 overflow-hidden rounded-3xl border border-primary-200 bg-gradient-to-br from-sky-600 via-blue-700 to-sky-800 text-white shadow-xl">
           <div className="relative p-6 sm:p-10 lg:p-12">
             <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-primary-500/10 blur-3xl pointer-events-none" />
             <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
@@ -145,7 +145,7 @@ export function CategoryPage() {
                   <h1 className="text-3xl font-black text-white sm:text-4xl lg:text-5xl tracking-tight">
                     {categoryInfo.name} Schemes
                   </h1>
-                  <p className="mt-3 text-sm sm:text-base text-purple-200 max-w-2xl leading-relaxed">
+                  <p className="mt-3 text-sm sm:text-base text-sky-200 max-w-2xl leading-relaxed">
                     {categoryInfo.description}. Explore comprehensive benefits, subsidies, and social security programs available under this category.
                   </p>
                 </div>
@@ -156,7 +156,7 @@ export function CategoryPage() {
                 <span className="text-4xl font-black text-white block">
                   {loading ? categoryInfo.schemeCount : categorySchemes.length}
                 </span>
-                <span className="text-xs font-extrabold uppercase tracking-wider text-purple-200 block mt-1">Total Schemes</span>
+                <span className="text-xs font-extrabold uppercase tracking-wider text-sky-200 block mt-1">Total Schemes</span>
                 <span className="text-2xl font-black text-emerald-300 block mt-2">{filteredSchemes.length}</span>
                 <span className="text-xs font-extrabold uppercase tracking-wider text-emerald-200 block">Matching Filters</span>
               </div>
@@ -165,19 +165,19 @@ export function CategoryPage() {
             {/* Stats grid */}
             <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4 border-t border-white/10 pt-6">
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Schemes Listed</span>
+                <span className="text-2xs font-bold text-sky-200 uppercase block">Schemes Listed</span>
                 <span className="text-xs font-extrabold text-white mt-0.5 block">{categorySchemes.length} schemes</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Central Schemes</span>
+                <span className="text-2xs font-bold text-sky-200 uppercase block">Central Schemes</span>
                 <span className="text-xs font-extrabold text-white mt-0.5 block">{centralSchemeCount}</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">State Schemes</span>
+                <span className="text-2xs font-bold text-sky-200 uppercase block">State Schemes</span>
                 <span className="text-xs font-extrabold text-white mt-0.5 block">{stateSchemeCount}</span>
               </div>
               <div className="rounded-xl bg-white/5 p-3 text-center border border-white/5">
-                <span className="text-2xs font-bold text-purple-200 uppercase block">Source</span>
+                <span className="text-2xs font-bold text-sky-200 uppercase block">Source</span>
                 <span className="text-xs font-extrabold text-white mt-0.5 block">MyScheme</span>
               </div>
             </div>
@@ -266,7 +266,7 @@ export function CategoryPage() {
                 >
                   {/* Header badges */}
                   <div className="mb-3 flex items-center justify-between">
-                    <span className="rounded-full bg-purple-50 border border-purple-200 px-2.5 py-0.5 text-2xs font-extrabold text-primary-700 capitalize">
+                    <span className="rounded-full bg-sky-50 border border-sky-200 px-2.5 py-0.5 text-2xs font-extrabold text-primary-700 capitalize">
                       {categoryInfo.name}
                     </span>
                     <span className="rounded-full bg-emerald-50 border border-emerald-300 px-2.5 py-0.5 text-2xs font-black text-emerald-700">
@@ -296,7 +296,7 @@ export function CategoryPage() {
                   </div>
 
                   {/* Benefit highlight */}
-                  <div className="mb-3 rounded-xl border border-primary-100 bg-gradient-to-r from-purple-50 to-primary-50/60 p-3">
+                  <div className="mb-3 rounded-xl border border-primary-100 bg-gradient-to-r from-sky-50 to-primary-50/60 p-3">
                     <p className="text-2xs font-black uppercase tracking-wider text-primary-700 mb-0.5">🎁 Benefit</p>
                     <p className="text-xs font-bold text-navy-900 leading-snug line-clamp-4">{scheme.benefitSummary || scheme.details}</p>
                   </div>

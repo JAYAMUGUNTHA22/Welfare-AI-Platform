@@ -330,7 +330,7 @@ export function ProfilePage() {
                 {docFields.map((field) => {
                   const Icon = field.icon;
                   return (
-                    <div key={field.label} className="rounded-xl border border-purple-100 bg-gradient-to-br from-violet-50 to-white p-4">
+                    <div key={field.label} className="rounded-xl border border-sky-100 bg-gradient-to-br from-sky-50 to-white p-4">
                       <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary-600">
                         <Icon className="h-3.5 w-3.5" /> {field.label}
                       </p>

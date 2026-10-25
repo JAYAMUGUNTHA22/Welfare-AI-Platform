@@ -29,6 +29,7 @@ export function FeedbackPage() {
 
   return (
     <DashboardLayout title={t('feedbackTitle')} subtitle={t('feedbackSub')}>
+      <div className="feedback-page">
       {submitted ? (
         <Card className="p-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-success-50 text-success-600">
@@ -40,11 +41,11 @@ export function FeedbackPage() {
         </Card>
       ) : (
         <div className="mx-auto max-w-2xl">
-          <Card className="p-6">
+          <Card className="feedback-form-card p-6 sm:p-8">
             <form onSubmit={handleSubmit} className="space-y-5">
-              <div>
-                <label className="label-base">{t('howRate')}</label>
-                <div className="flex items-center gap-2">
+              <div className="feedback-rating-panel rounded-2xl border border-sky-100 p-5">
+                <label className="label-base text-sky-900">{t('howRate')}</label>
+                <div className="flex items-center gap-2" role="group" aria-label={t('howRate')}>
                   {Array.from({ length: 5 }).map((_, i) => {
                     const val = i + 1;
                     return (
@@ -57,7 +58,7 @@ export function FeedbackPage() {
                         aria-label={`Rate ${val} out of 5`}
                         className="p-1"
                       >
-                        <Star className={`h-7 w-7 transition-colors ${(hover || rating) >= val ? 'fill-accent-400 text-accent-400' : 'text-gray-300'}`} />
+                        <Star className={`h-7 w-7 transition-colors ${(hover || rating) >= val ? 'fill-sky-400 text-sky-500' : 'text-gray-300'}`} />
                       </button>
                     );
                   })}
@@ -67,13 +68,14 @@ export function FeedbackPage() {
 
               <div>
                 <label className="label-base">{t('categoryTab')}</label>
-                <div className="flex flex-wrap gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                   {categories.map((cat) => (
                     <button
                       key={cat.id}
                       type="button"
                       onClick={() => setCategory(cat.id)}
-                      className={`rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors ${category === cat.id ? 'border-primary-600 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-navy-600 hover:border-primary-300'}`}
+                      aria-pressed={category === cat.id}
+                      className={`rounded-xl border px-3 py-3 text-left text-sm font-semibold transition-all ${category === cat.id ? 'border-sky-400 bg-sky-50 text-sky-800 shadow-sm ring-2 ring-sky-100' : 'border-gray-200 bg-white text-navy-600 hover:border-sky-300 hover:bg-sky-50/60'}`}
                     >
                       {cat.label}
                     </button>
@@ -102,6 +104,7 @@ export function FeedbackPage() {
           </Card>
         </div>
       )}
+      </div>
     </DashboardLayout>
   );
 }

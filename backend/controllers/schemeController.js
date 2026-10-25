@@ -1,5 +1,61 @@
 import { Scheme } from '../models/Scheme.js';
 import { SchemeEligibility } from '../models/SchemeEligibility.js';
+import { SchemeRecommendation } from '../models/SchemeRecommendation.js';
+import { createHash } from 'node:crypto';
+
+export const saveSchemeRecommendations = async (req, res) => {
+  try {
+    const { profile = {}, schemes } = req.body || {};
+    if (!Array.isArray(schemes)) {
+      return res.status(400).json({ message: 'A schemes array is required' });
+    }
+
+    const savedProfile = {
+      fullName: String(profile.fullName || req.user.fullName || ''),
+      state: String(profile.state || ''),
+      age: profile.age === '' || profile.age == null ? null : Number(profile.age),
+      occupation: String(profile.occupation || ''),
+      income: String(profile.income || ''),
+      annualIncomeINR: profile.annualIncomeINR === '' || profile.annualIncomeINR == null
+        ? null : Number(profile.annualIncomeINR),
+      socialCategory: String(profile.socialCategory || ''),
+      isDifferentlyAbled: Boolean(profile.isDifferentlyAbled),
+      isWidow: Boolean(profile.isWidow),
+      motherWidowed: Boolean(profile.motherWidowed),
+    };
+    if ((savedProfile.age !== null && !Number.isFinite(savedProfile.age))
+      || (savedProfile.annualIncomeINR !== null && !Number.isFinite(savedProfile.annualIncomeINR))) {
+      return res.status(400).json({ message: 'Age and income must be valid numbers' });
+    }
+
+    const profileFingerprint = createHash('sha256').update(JSON.stringify(savedProfile)).digest('hex');
+    const savedSchemes = schemes.slice(0, 100).map((scheme) => ({
+      schemeId: String(scheme.schemeId || scheme.myschemeSlug || scheme.id || ''),
+      name: String(scheme.name || scheme.scheme_name || ''),
+      provider: String(scheme.provider || ''),
+      category: String(scheme.category || ''),
+      benefitSummary: String(scheme.benefitSummary || ''),
+      matchScore: Number(scheme.matchScore) || 0,
+      matchTier: String(scheme.matchTier || ''),
+      matchReasons: Array.isArray(scheme.matchReasons) ? scheme.matchReasons : [],
+      recommendationNote: String(scheme.recommendationNote || ''),
+    }));
+
+    const recommendation = await SchemeRecommendation.findOneAndUpdate(
+      { citizen: req.user._id, profileFingerprint },
+      { $set: { profile: savedProfile, schemes: savedSchemes, generatedAt: new Date() } },
+      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+    );
+    res.status(200).json({
+      message: 'Recommendations saved',
+      id: recommendation._id,
+      schemeCount: recommendation.schemes.length,
+    });
+  } catch (error) {
+    console.error('Error saving scheme recommendations:', error);
+    res.status(500).json({ message: 'Failed to save scheme recommendations' });
+  }
+};
 
 export const recommendSchemes = async (req, res) => {
   try {

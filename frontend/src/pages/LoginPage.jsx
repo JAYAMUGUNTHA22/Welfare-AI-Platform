@@ -85,7 +85,7 @@ export function LoginPage() {
           </div>
 
           {/* ── Demo credentials banner ── */}
-          <div className="mb-5 rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-50 via-purple-50 to-primary-50 p-4 shadow-sm">
+          <div className="mb-5 rounded-2xl border border-primary-200 bg-gradient-to-r from-primary-50 via-sky-50 to-primary-50 p-4 shadow-sm">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary-600" />

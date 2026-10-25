@@ -1,14 +1,13 @@
 import { authenticate } from '../middleware/auth.js';
+import { Document } from '../models/Document.js';
 
 // Simulated dashboard data calculated from user object & mocked missing pieces
 export const getDashboardData = async (req, res) => {
   try {
     const user = req.user;
-    
-    // In a real implementation, we would query Application, Benefit, Document, and Scheme collections matching this userId.
-    
-    // Mocked dashboard data derived similarly to the required outputs, 
-    // initialized to 0 for a new user experience to avoid showing fake dummy data.
+    res.set('Cache-Control', 'no-store');
+    const documentsCount = await Document.countDocuments({ userId: user._id });
+
     res.json({
       benefitsReceived: 0,
       currentPotential: 0,
@@ -16,7 +15,7 @@ export const getDashboardData = async (req, res) => {
       pendingApplications: 0,
       upcomingOpportunities: 0,
       aiMatchedSchemesCount: 0,
-      documentsCount: 0
+      documentsCount
     });
   } catch (error) {
     res.status(500).json({ message: 'Error fetching dashboard data', error: error.message });

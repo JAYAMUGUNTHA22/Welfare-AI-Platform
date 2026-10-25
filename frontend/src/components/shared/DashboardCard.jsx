@@ -1,24 +1,26 @@
 import { Card } from '@/components/ui/Card';
 
 const colorMap = {
-  primary: 'bg-primary-50 text-primary-600',
-  accent: 'bg-accent-50 text-accent-600',
-  success: 'bg-success-50 text-success-600',
-  navy: 'bg-navy-50 text-navy-600',
-  warning: 'bg-warning-50 text-warning-600',
+  primary: 'dashboard-icon-blue',
+  accent: 'dashboard-icon-cyan',
+  success: 'dashboard-icon-green',
+  navy: 'dashboard-icon-slate',
+  warning: 'dashboard-icon-orange',
 };
 
 export function DashboardCard({ label, value, icon: Icon, trend, color = 'primary' }) {
   return (
-    <Card className="p-5">
-      <div className="flex items-center justify-between">
-        <div className={`flex h-11 w-11 items-center justify-center rounded-xl ${colorMap[color]}`}>
-          <Icon className="h-5 w-5" />
+    <Card className="dashboard-stat-card relative min-h-44 p-6">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-slate-600">{label}</p>
+          <p className="mt-4 text-3xl font-extrabold tracking-tight text-slate-800">{value}</p>
         </div>
-        {trend && <span className="text-xs font-semibold text-success-600">{trend}</span>}
+        <div className={`dashboard-stat-icon flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl ${colorMap[color]}`}>
+          <Icon className="h-7 w-7" />
+        </div>
       </div>
-      <p className="mt-3 text-2xl font-bold text-navy-900">{value}</p>
-      <p className="mt-0.5 text-sm text-gray-500">{label}</p>
+      {trend && <span className="mt-3 inline-block text-xs font-semibold text-emerald-600">{trend}</span>}
     </Card>
   );
 }

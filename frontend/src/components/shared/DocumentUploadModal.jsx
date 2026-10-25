@@ -198,7 +198,7 @@ export function DocumentUploadModal({ open, onClose, onSave, existingDocument })
             className={`cursor-pointer flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-6 text-center transition-all ${
               isDragOver
                 ? 'border-primary-600 bg-primary-50'
-                : 'border-gray-300 bg-gray-50/50 hover:border-primary-400 hover:bg-purple-50/40'
+                : 'border-gray-300 bg-gray-50/50 hover:border-primary-400 hover:bg-sky-50/40'
             }`}
           >
             {selectedFile ? (
@@ -231,7 +231,7 @@ export function DocumentUploadModal({ open, onClose, onSave, existingDocument })
         </div>
 
         {/* AI extraction notice */}
-        <div className="flex items-center gap-2 rounded-xl bg-violet-50 border border-violet-100 px-3 py-2">
+        <div className="flex items-center gap-2 rounded-xl bg-sky-50 border border-sky-100 px-3 py-2">
           <Sparkles className="h-4 w-4 text-primary-600 shrink-0" />
           <p className="text-[11px] text-primary-700 font-medium">
             {t('aiExtractionNote', { defaultValue: 'AI will automatically extract details like age, income, and category from your document.' })}

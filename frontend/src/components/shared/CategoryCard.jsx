@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, GraduationCap, Heart, Baby, Users, Stethoscope, Accessibility, Wheat, Briefcase, Home, Wallet, Rocket, Award, MapPin, ShieldCheck } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 
-import { schemes } from '@/data/mockData';
 
 const iconMap = {
   education: GraduationCap, women: Heart, children: Baby, 'senior-citizens': Users,
@@ -31,19 +30,19 @@ export function CategoryCard({ category, onClick }) {
   const dynamicCount = category.schemeCount;
   return (
     <Link to={`/category/${category.id}`} className="block group text-left h-full" onClick={onClick}>
-      <Card className="p-5 h-full transition-all duration-200 group-hover:border-primary-400 group-hover:shadow-md cursor-pointer flex flex-col justify-between" hover>
+      <Card className="landing-category-card p-5 h-full transition-all duration-200 group-hover:border-sky-300 group-hover:shadow-lg cursor-pointer flex flex-col justify-between" hover>
         <div className="flex items-start gap-4">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-600 transition-colors group-hover:bg-primary-600 group-hover:text-white">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-50 text-sky-700 shadow-sm transition-all group-hover:from-sky-500 group-hover:to-blue-600 group-hover:text-white">
             <Icon className="h-6 w-6" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-navy-900 group-hover:text-primary-700 transition-colors">{category.name}</h3>
-            <p className="mt-1 text-xs text-gray-500 leading-relaxed">{category.description}</p>
-            <p className="mt-2 text-xs font-semibold text-primary-600">{dynamicCount} schemes</p>
+            <h3 className="text-base font-bold text-slate-800 group-hover:text-sky-800 transition-colors">{category.name}</h3>
+            <p className="mt-1.5 text-sm text-slate-500 leading-relaxed">{category.description}</p>
+            <p className="mt-3 inline-flex rounded-full bg-sky-50 px-2.5 py-1 text-xs font-bold text-sky-800">{dynamicCount} schemes</p>
           </div>
         </div>
-        <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-primary-600 group-hover:text-primary-700 transition-colors pt-2 border-t border-gray-100">
-          Explore Schemes <ArrowRight className="h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
+        <div className="mt-5 flex items-center justify-between border-t border-sky-100 pt-3 text-sm font-bold text-sky-700 transition-colors group-hover:text-sky-900">
+          Explore Schemes <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
         </div>
       </Card>
     </Link>

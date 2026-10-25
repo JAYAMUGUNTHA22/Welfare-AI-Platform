@@ -26,3 +26,24 @@ export const authenticate = async (req, res, next) => {
     res.status(401).json({ message: 'Not authorized, invalid token' });
   }
 };
+
+export const requireDocumentVerification = (req, res, next) => {
+  try {
+    const cookieHeader = req.headers.cookie || '';
+    const tokenPair = cookieHeader.split(';').map((part) => part.trim())
+      .find((part) => part.startsWith('documentAccess='));
+    const accessToken = tokenPair?.slice('documentAccess='.length);
+    if (!accessToken) {
+      return res.status(403).json({ message: 'Verify your password to access documents' });
+    }
+
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET || 'fallback_secret');
+    if (decoded.purpose !== 'document-access' || String(decoded.id) !== String(req.user._id)) {
+      return res.status(403).json({ message: 'Verify your password to access documents' });
+    }
+
+    next();
+  } catch (_error) {
+    res.status(403).json({ message: 'Your document verification expired. Enter your password again.' });
+  }
+};

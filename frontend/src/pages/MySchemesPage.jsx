@@ -1,33 +1,95 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles, Search, SlidersHorizontal, CheckCircle2, AlertCircle,
   ArrowRight, User, Calendar, MapPin, Briefcase, Wallet, Clock,
-  RefreshCw, ShieldCheck, Filter, ChevronDown, Award, TrendingUp, X
+  RefreshCw, ShieldCheck, Filter, ChevronDown, Award, TrendingUp, X, Heart, GraduationCap, Wheat
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getMe } from '@/services/api';
+import { getMe, saveSchemeRecommendations } from '@/services/api';
 import { applications } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
 import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
-import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
-import { myschemeCategories } from '@/data/myschemeCategories';
+import { getPersonalizedSchemeRecommendations, loadMyschemeSchemes } from '@/data/myschemeDataset';
 
-function getMatchTier(score) {
-  if (score >= 90) return { label: 'Strong Match', color: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-  if (score >= 50) return { label: 'Potential Match', color: 'bg-amber-100 text-amber-800 border-amber-300' };
-  return { label: 'Needs Review', color: 'bg-gray-100 text-gray-700 border-gray-300' };
+const visibleCategories = [
+  { id: 'agriculture-rural-environment', label: 'Agriculture', description: 'Support for farmers and rural communities', icon: Wheat },
+  { id: 'education-learning', label: 'Education', description: 'Learning opportunities and student support', icon: GraduationCap },
+  { id: 'sports-culture', label: 'Sports', description: 'Sports participation and cultural programs', icon: Award },
+  { id: 'social-welfare-empowerment', label: 'Social Welfare', description: 'Community support and social empowerment', icon: Wallet },
+  { id: 'women-and-child', label: 'Women and Child', description: 'Programs supporting women, children, and families', icon: Heart },
+  { id: 'skills-employment', label: 'Skills', description: 'Training, skills, and employment support', icon: Briefcase },
+  { id: 'banking-financial-services-and-insurance', label: 'Banking', description: 'Financial services and insurance support', icon: Wallet },
+];
+
+const studentDetailsDefaults = {
+  collegeYear: '', collegeType: '', schoolHistory: '', class12Marks: '',
+  firstGraduate: '', familyCrisis: '',
+};
+
+const studentDetailQuestions = [
+  { key: 'collegeYear', label: 'Current college year', options: ['First year', 'Second year', 'Final year', 'Postgraduate'] },
+  { key: 'collegeType', label: 'College type', options: ['Government college', 'Government-aided college', 'Private college'] },
+  { key: 'schoolHistory', label: 'School studied from Classes 6–12', options: ['Government school', 'Government-aided Tamil-medium school', 'Private school', 'Mixed school types'] },
+  { key: 'class12Marks', label: 'Class XII marks', options: ['Below 60%', '60% to below 75%', '75% or above', 'Unknown'] },
+  { key: 'firstGraduate', label: 'First graduate in the family?', options: ['Yes', 'No', 'Not sure'] },
+  { key: 'familyCrisis', label: 'Major family or financial crisis in the last 3 years?', options: ['Yes', 'No', 'Prefer not to say'] },
+];
+
+function getAdditionalEligibilityAssessment(scheme, details) {
+  const name = scheme.name.toLowerCase();
+  if (name.includes('pudhumai penn') || name.includes('moovalur ramamirtham')) {
+    if (!details.schoolHistory) return { label: 'Needs more information', reason: 'Confirm whether Classes 6–12 were completed in an eligible government school.' };
+    return details.schoolHistory === 'Government school'
+      ? { label: 'Potential match', reason: 'Confirm the scheme’s school-history and current-course requirements.' }
+      : { label: 'May not match', reason: 'The listed school-history requirement may not be met; verify current state rules.' };
+  }
+  if (name.includes('pragati')) {
+    if (!details.collegeYear || !details.collegeType) return { label: 'Needs more information', reason: 'Confirm an eligible AICTE technical course, admission year, and college.' };
+    if (!['First year', 'Second year'].includes(details.collegeYear)) return { label: 'May not match', reason: 'The listed fresh-admission rule is limited to eligible first-year or lateral-entry students.' };
+    return { label: 'Potential match', reason: 'Confirm AICTE course approval, admission year, family income, and current rules.' };
+  }
+  if (name.includes('central sector scheme of scholarship') || name.includes('pm-usp')) {
+    if (!details.collegeYear || !details.class12Marks) return { label: 'Needs more information', reason: 'Confirm Class XII merit position, marks, admission year, and course.' };
+    if (details.collegeYear !== 'First year') return { label: 'May not match', reason: 'The scheme generally requires first-year admission for a fresh applicant.' };
+    return { label: 'Potential match', reason: 'Verify the board merit criteria and prescribed income limit.' };
+  }
+  if (name.includes('first graduate')) {
+    if (!details.firstGraduate || details.firstGraduate === 'Not sure') return { label: 'Needs more information', reason: 'Confirm whether the family meets the first-graduate criteria.' };
+    return details.firstGraduate === 'Yes'
+      ? { label: 'Potential match', reason: 'Confirm course, admission, certificate, and family criteria.' }
+      : { label: 'May not match', reason: 'The first-graduate family condition appears unmet.' };
+  }
+  if (name.includes('nagammai')) {
+    if (!details.collegeYear) return { label: 'Needs more information', reason: 'Confirm whether you are pursuing a postgraduate Arts or Science degree.' };
+    return details.collegeYear === 'Postgraduate'
+      ? { label: 'Potential match', reason: 'Confirm eligible subject and recognised college.' }
+      : { label: 'Not a match', reason: 'This scheme is for eligible postgraduate students.' };
+  }
+  return { label: 'Potential match', reason: 'Check course, institution, marks, and any family-specific rules before applying.' };
 }
 
 export function MySchemesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
   const [recommendedSchemes, setRecommendedSchemes] = useState([]);
+  const [categorySchemes, setCategorySchemes] = useState([]);
+  const [categoryLoading, setCategoryLoading] = useState(false);
+  const [categoryError, setCategoryError] = useState(null);
+  const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [studentDetails, setStudentDetails] = useState(() => {
+    try {
+      return { ...studentDetailsDefaults, ...JSON.parse(localStorage.getItem('recommendationStudentDetails') || '{}') };
+    } catch {
+      return studentDetailsDefaults;
+    }
+  });
 
   // Search, Filter, Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -40,7 +102,33 @@ export function MySchemesPage() {
     loadUserAndSchemes();
   }, []);
 
-  const loadUserAndSchemes = async () => {
+  useEffect(() => {
+    if (selectedCategory === 'All') {
+      setCategorySchemes([]);
+      setCategoryError(null);
+      setCategoryLoading(false);
+      return undefined;
+    }
+
+    let active = true;
+    setCategoryLoading(true);
+    setCategoryError(null);
+    loadMyschemeSchemes()
+      .then((allSchemes) => {
+        if (active) setCategorySchemes(allSchemes.filter((scheme) => scheme.tags?.includes(selectedCategory)));
+      })
+      .catch((loadError) => {
+        console.error('Failed to load category schemes', loadError);
+        if (active) setCategoryError('We could not load schemes for this category. Please try again.');
+      })
+      .finally(() => {
+        if (active) setCategoryLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [selectedCategory, categoryLoadAttempt]);
+
+  const loadUserAndSchemes = async (details = studentDetails) => {
     setLoading(true);
     setError(null);
     try {
@@ -68,9 +156,12 @@ export function MySchemesPage() {
         isWidow: Boolean(fetchedUser?.isWidow),
         motherWidowed: Boolean(fetchedUser?.motherWidowed),
         fullName: fetchedUser?.fullName || 'You',
+        ...details,
       };
       setUser(userProfile);
-      setRecommendedSchemes(await getPersonalizedSchemeRecommendations(userProfile));
+      const recommendations = await getPersonalizedSchemeRecommendations(userProfile);
+      setRecommendedSchemes(recommendations);
+      await saveSchemeRecommendations(userProfile, recommendations);
     } catch (err) {
       console.error('Failed to load personalized recommendations', err);
       setError('We could not load your personalized recommendations. Please try again.');
@@ -92,7 +183,7 @@ export function MySchemesPage() {
     }
 
     // Category filter
-    if (selectedCategory !== 'All' && !scheme.schemeCategories?.includes(selectedCategory)) return false;
+    if (selectedCategory !== 'All' && !scheme.tags?.includes(selectedCategory)) return false;
 
     // Match tier filter
     if (selectedMatchTier !== 'All') {
@@ -114,6 +205,17 @@ export function MySchemesPage() {
     filteredSchemes.sort((a, b) => (a.deadline || '').localeCompare(b.deadline || ''));
   }
 
+  let categorySearchResults = categorySchemes.filter((scheme) => {
+    if (!searchQuery.trim()) return true;
+    const query = searchQuery.trim().toLowerCase();
+    return [scheme.name, scheme.provider, scheme.benefitSummary, scheme.details, scheme.eligibility]
+      .some((value) => value?.toLowerCase().includes(query));
+  });
+  if (sortBy === 'a-z') categorySearchResults = [...categorySearchResults].sort((a, b) => a.name.localeCompare(b.name));
+  categorySearchResults = categorySearchResults.slice(0, 10);
+  const isShowingCategory = selectedCategory !== 'All';
+  const schemesToDisplay = isShowingCategory ? categorySearchResults : filteredSchemes;
+
   // Calculated Stats
   const highlyRelevantCount = recommendedSchemes.filter(s => s.matchScore >= 90).length;
   const strongMatchesCount = recommendedSchemes.filter(s => s.matchScore >= 50 && s.matchScore < 90).length;
@@ -123,7 +225,7 @@ export function MySchemesPage() {
     || user?.annualIncomeINR != null || user?.socialCategory
   );
 
-  const categoriesList = ['All', ...myschemeCategories.map((category) => category.name)];
+  const categoriesList = visibleCategories;
   const matchTiersList = ['All', 'Strong Match', 'Potential Match', 'Needs Review'];
 
   return (
@@ -131,49 +233,50 @@ export function MySchemesPage() {
       title="My Schemes"
       subtitle="Personalized welfare schemes selected for you based on your profile."
     >
+      <div className="myschemes-page">
       {/* SECTION 1: Personalized Profile Summary Header */}
-      <div className="mb-6 rounded-2xl border border-primary-200 bg-gradient-to-r from-purple-900 via-navy-900 to-primary-900 p-6 text-white shadow-lg lg:p-8">
+      <div className="myschemes-curated mb-6 rounded-2xl border p-6 shadow-lg lg:p-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3.5 py-1 text-xs font-bold text-accent-300 border border-white/20 backdrop-blur-xs">
-              <Sparkles className="h-3.5 w-3.5 text-accent-400" /> ✨ Recommended for You
+            <div className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-sky-700 border border-sky-200">
+              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ Recommended for You
             </div>
-            <h2 className="text-xl font-extrabold text-white sm:text-2xl">
+            <h2 className="text-xl font-extrabold text-sky-800 sm:text-2xl">
               Curated for {user?.fullName || 'You'}
             </h2>
-            <p className="text-xs text-purple-200 sm:text-sm">
+            <p className="text-xs text-slate-600 sm:text-sm">
               Recommendations are ranked using your profile and the eligibility details available in the MyScheme dataset. Confirm all requirements on the official scheme website before applying.
             </p>
 
             {/* Profile Metadata Chips */}
             <div className="flex flex-wrap gap-2 pt-2 text-xs">
               {user?.state && (
-                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
-                  <MapPin className="h-3.5 w-3.5 text-accent-400" /> {user.state}
+                <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
+                  <MapPin className="h-3.5 w-3.5 text-sky-600" /> {user.state}
                 </span>
               )}
               {user?.age && (
-                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
-                  <Calendar className="h-3.5 w-3.5 text-accent-400" /> Age {user.age}
+                <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
+                  <Calendar className="h-3.5 w-3.5 text-sky-600" /> Age {user.age}
                 </span>
               )}
               {user?.occupation && (
-                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
-                  <Briefcase className="h-3.5 w-3.5 text-accent-400" /> {user.occupation}
+                <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
+                  <Briefcase className="h-3.5 w-3.5 text-sky-600" /> {user.occupation}
                 </span>
               )}
               {user?.income && (
-                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
-                  <Wallet className="h-3.5 w-3.5 text-accent-400" /> {user.income}
+                <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
+                  <Wallet className="h-3.5 w-3.5 text-sky-600" /> {user.income}
                 </span>
               )}
               {user?.annualIncomeINR != null && (
-                <span className="flex items-center gap-1 rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
-                  <Wallet className="h-3.5 w-3.5 text-accent-400" /> ₹{Number(user.annualIncomeINR).toLocaleString('en-IN')} annual income
+                <span className="flex items-center gap-1 rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
+                  <Wallet className="h-3.5 w-3.5 text-sky-600" /> ₹{Number(user.annualIncomeINR).toLocaleString('en-IN')} annual income
                 </span>
               )}
               {user?.socialCategory && (
-                <span className="rounded-lg bg-white/15 px-3 py-1.5 font-bold text-white border border-white/20">
+                <span className="rounded-lg bg-sky-50 px-3 py-1.5 font-bold text-sky-800 border border-sky-200">
                   {user.socialCategory} category
                 </span>
               )}
@@ -183,7 +286,7 @@ export function MySchemesPage() {
           <div className="shrink-0 pt-2 lg:pt-0">
             <Link
               to="/profile"
-              className="inline-flex items-center gap-2 rounded-xl bg-white/15 hover:bg-white/25 text-white border border-white/30 px-4 py-2.5 text-xs font-bold transition-all shadow-sm"
+              className="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white border border-sky-600 px-4 py-2.5 text-xs font-bold transition-all shadow-sm"
             >
               <User className="h-4 w-4" /> Edit Profile <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -204,13 +307,13 @@ export function MySchemesPage() {
             </div>
           </div>
 
-          <div className="rounded-xl border border-purple-200 bg-purple-50/60 p-4 shadow-sm flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-purple-200 text-purple-800">
+          <div className="rounded-xl border border-sky-200 bg-sky-50/70 p-4 shadow-sm flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-sky-200 text-sky-800">
               <Sparkles className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-2xl font-black text-purple-950">{highlyRelevantCount}</p>
-              <p className="text-xs font-medium text-purple-700">Highly Relevant Schemes</p>
+              <p className="text-2xl font-black text-sky-950">{highlyRelevantCount}</p>
+              <p className="text-xs font-medium text-sky-700">Highly Relevant Schemes</p>
             </div>
           </div>
 
@@ -235,6 +338,34 @@ export function MySchemesPage() {
           </div>
         </div>
       )}
+
+      <section className="mb-7">
+        <div className="mb-4 flex items-end justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">Category</h2>
+            <p className="mt-1 text-sm text-slate-500">Browse schemes by the areas that matter to you.</p>
+          </div>
+          {selectedCategory !== 'All' && <button onClick={() => { setSelectedCategory('All'); setSelectedMatchTier('All'); setSearchQuery(''); }} className="text-sm font-semibold text-sky-700 hover:text-sky-800">Show all</button>}
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {categoriesList.map(({ id, label, description, icon: Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => navigate(`/category/${id}`)}
+              aria-label={`Browse ${label} schemes`}
+              className={`myschemes-category-card group rounded-2xl border bg-white p-5 text-left transition-all ${selectedCategory === id ? 'border-sky-400 ring-2 ring-sky-100' : 'border-slate-100'}`}
+            >
+              <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-50 text-sky-600 transition-colors group-hover:from-sky-500 group-hover:to-blue-600 group-hover:text-white">
+                <Icon className="h-6 w-6" />
+              </span>
+              <span className="block font-bold text-slate-800">{label}</span>
+              <span className="mt-1 block min-h-10 text-xs leading-relaxed text-slate-500">{description}</span>
+              <span className="mt-3 block text-xs font-semibold text-sky-700">Explore category <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* SECTION 3: Search & Filters Toolbar */}
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
@@ -278,26 +409,12 @@ export function MySchemesPage() {
           </div>
         </div>
 
-        {/* Desktop Filter Chips */}
+        {/* Match level filter */}
         <div className="mt-4 hidden md:flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
-          <span className="text-2xs font-bold uppercase tracking-wider text-gray-400 mr-2">Category:</span>
-          {categoriesList.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-                selectedCategory === cat
-                  ? 'bg-primary-600 text-white shadow-2xs'
-                  : 'bg-gray-100 text-navy-700 hover:bg-purple-50 hover:text-primary-700'
-              }`}
-            >
-              {cat}
-            </button>
-          ))}
-
           <div className="ml-auto flex items-center gap-2">
             <span className="text-2xs font-bold uppercase tracking-wider text-gray-400">Match Level:</span>
             <select
+              disabled={isShowingCategory}
               value={selectedMatchTier}
               onChange={(e) => setSelectedMatchTier(e.target.value)}
               className="rounded-lg border border-gray-200 bg-white py-1 px-2.5 text-xs font-bold text-navy-700 focus:border-primary-500 cursor-pointer"
@@ -313,24 +430,9 @@ export function MySchemesPage() {
         {showMobileFilters && (
           <div className="mt-4 border-t border-gray-100 pt-3 md:hidden space-y-3">
             <div>
-              <p className="text-xs font-bold text-gray-500 mb-1.5">Category</p>
-              <div className="flex flex-wrap gap-1.5">
-                {categoriesList.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`rounded-md px-2.5 py-1 text-xs font-bold ${
-                      selectedCategory === cat ? 'bg-primary-600 text-white' : 'bg-gray-100 text-navy-700'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div>
               <p className="text-xs font-bold text-gray-500 mb-1.5">Match Level</p>
               <select
+                disabled={isShowingCategory}
                 value={selectedMatchTier}
                 onChange={(e) => setSelectedMatchTier(e.target.value)}
                 className="w-full rounded-lg border border-gray-200 bg-white p-2 text-xs font-bold"
@@ -345,40 +447,84 @@ export function MySchemesPage() {
       </div>
 
       {/* SECTION 4: Scheme Results Grid */}
-      {loading ? (
+      <div className="mb-4 flex items-end justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-extrabold text-slate-800">
+            {isShowingCategory ? `${visibleCategories.find(({ id }) => id === selectedCategory)?.label || 'Category'} schemes` : 'Recommended schemes'}
+            {!categoryLoading && <span className="ml-2 text-sm font-semibold text-slate-500">({schemesToDisplay.length})</span>}
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {isShowingCategory ? 'Showing up to 10 schemes from the selected category, with benefit and eligibility details.' : 'Personalized recommendations based on your profile.'}
+          </p>
+        </div>
+      </div>
+
+      <section className="mb-6 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm lg:p-6">
+        <div className="mb-4">
+          <h2 className="text-lg font-extrabold text-slate-800">Improve your scholarship matches</h2>
+          <p className="mt-1 text-sm text-slate-600">Add these details to see conditional matches and the requirements you still need to check.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {studentDetailQuestions.map(({ key, label, options }) => (
+            <label key={key} className="text-sm font-semibold text-slate-700">
+              {label}
+              <select
+                value={studentDetails[key]}
+                onChange={(event) => setStudentDetails((current) => ({ ...current, [key]: event.target.value }))}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"
+              >
+                <option value="">Choose an answer</option>
+                {options.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+            </label>
+          ))}
+        </div>
+        <Button
+          onClick={() => {
+            localStorage.setItem('recommendationStudentDetails', JSON.stringify(studentDetails));
+            loadUserAndSchemes(studentDetails);
+          }}
+          variant="primary"
+          size="sm"
+          className="mt-4 gap-2"
+        >
+          Find more suitable schemes <ArrowRight className="h-4 w-4" />
+        </Button>
+      </section>
+      {(isShowingCategory ? categoryLoading : loading) ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
             <div key={i} className="animate-pulse rounded-2xl border border-gray-200 bg-white p-6 shadow-xs">
               <div className="h-4 w-1/3 rounded bg-gray-200 mb-4" />
               <div className="h-6 w-3/4 rounded bg-gray-200 mb-2" />
               <div className="h-4 w-1/2 rounded bg-gray-100 mb-6" />
-              <div className="h-16 w-full rounded bg-purple-50 mb-4" />
+              <div className="h-16 w-full rounded bg-sky-50 mb-4" />
               <div className="h-20 w-full rounded bg-gray-50 mb-4" />
               <div className="h-10 w-full rounded bg-gray-200" />
             </div>
           ))}
         </div>
-      ) : error ? (
+      ) : (isShowingCategory ? categoryError : error) ? (
         <div className="rounded-2xl border border-error-200 bg-error-50/50 p-8 text-center shadow-xs">
           <AlertCircle className="mx-auto h-10 w-10 text-error-500" />
-          <h3 className="mt-2 text-base font-bold text-navy-900">Recommendation Load Error</h3>
-          <p className="mt-1 text-sm text-navy-600">{error}</p>
-          <Button onClick={loadUserAndSchemes} variant="outline" size="sm" className="mt-4 gap-2">
+          <h3 className="mt-2 text-base font-bold text-navy-900">{isShowingCategory ? 'Category Load Error' : 'Recommendation Load Error'}</h3>
+          <p className="mt-1 text-sm text-navy-600">{isShowingCategory ? categoryError : error}</p>
+          <Button onClick={() => isShowingCategory ? setCategoryLoadAttempt((attempt) => attempt + 1) : loadUserAndSchemes()} variant="outline" size="sm" className="mt-4 gap-2">
             <RefreshCw className="h-4 w-4" /> Retry Loading
           </Button>
         </div>
-      ) : filteredSchemes.length === 0 ? (
+      ) : schemesToDisplay.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-xs">
           <Filter className="mx-auto h-10 w-10 text-gray-400 mb-2" />
           <h3 className="text-base font-bold text-navy-900">
-            {hasProfileData ? 'No schemes found matching your filter' : 'Add profile details to get personalized scheme suggestions'}
+            {isShowingCategory ? 'No schemes found in this category' : hasProfileData ? 'No schemes found matching your filter' : 'Add profile details to get personalized scheme suggestions'}
           </h3>
           <p className="mt-1 text-xs text-gray-500">
-            {hasProfileData
+            {isShowingCategory ? 'Try another category or clear your search.' : hasProfileData
               ? 'Try clearing search keywords or resetting match level filters.'
               : 'Enter your age, occupation, income, and category in Find Schemes.'}
           </p>
-          {!hasProfileData && (
+          {!isShowingCategory && !hasProfileData && (
             <Button to="/schemes" variant="outline" size="sm" className="mt-4">Open Find Schemes</Button>
           )}
           <Button
@@ -396,10 +542,49 @@ export function MySchemesPage() {
         </div>
       ) : (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredSchemes.map((scheme) => {
+          {schemesToDisplay.map((scheme) => {
             const sid = scheme.schemeId || scheme.id;
             const applicationUrl = getSchemeApplicationUrl(scheme);
-            const tierInfo = getMatchTier(scheme.matchScore ?? 0);
+            if (isShowingCategory) {
+              const categoryLabel = visibleCategories.find(({ id }) => id === selectedCategory)?.label || 'Welfare';
+              return (
+                <Card key={sid} className="flex flex-col justify-between rounded-2xl border border-sky-100 bg-white p-6 shadow-card transition-all hover:border-sky-300 hover:shadow-xl">
+                  <div>
+                    <div className="mb-4 flex items-center justify-between gap-2 border-b border-sky-100 pb-3">
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-2xs font-black uppercase text-sky-700">{categoryLabel}</span>
+                      {scheme.level && <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-2xs font-semibold text-cyan-800">{scheme.level} scheme</span>}
+                    </div>
+                    <Link to={`/schemes/${sid}`} className="group block mb-1">
+                      <h3 className="text-lg font-extrabold text-slate-800 transition-colors group-hover:text-sky-700">{scheme.name}</h3>
+                    </Link>
+                    <p className="mb-4 text-xs font-medium text-slate-500">{scheme.provider}</p>
+                    <div className="mb-3 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
+                      <p className="mb-1 text-2xs font-black uppercase tracking-wider text-sky-700">Benefit</p>
+                      <p className="line-clamp-4 text-xs font-semibold leading-relaxed text-slate-700">{scheme.benefitSummary || 'See scheme details for information about the benefits.'}</p>
+                    </div>
+                    {scheme.eligibility && (
+                      <div className="mb-4 rounded-xl bg-slate-50 p-3.5">
+                        <p className="mb-1 text-2xs font-black uppercase tracking-wider text-slate-500">Eligibility</p>
+                        <p className="line-clamp-4 text-xs leading-relaxed text-slate-600">{scheme.eligibility}</p>
+                      </div>
+                    )}
+                    {scheme.details && <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-slate-500">{scheme.details}</p>}
+                  </div>
+                  <div className="mt-auto flex gap-2 border-t border-slate-100 pt-3">
+                    <Button to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">View Details</Button>
+                    <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
+                      {applicationUrl ? 'Apply Now' : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </Card>
+              );
+            }
+            const eligibilityAssessment = getAdditionalEligibilityAssessment(scheme, studentDetails);
+            const assessmentColor = eligibilityAssessment.label === 'Potential match'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : eligibilityAssessment.label === 'Needs more information'
+                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                : 'border-slate-200 bg-slate-100 text-slate-700';
 
             // Check if user has applied
             const app = applications.find(a => a.schemeId === sid || a.schemeName === scheme.name);
@@ -413,13 +598,12 @@ export function MySchemesPage() {
                 <div>
                   {/* Card Header: Category & Match Tier Badge */}
                   <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
-                    <span className="truncate rounded-full bg-purple-50 border border-purple-200 px-3 py-1 text-2xs font-black uppercase text-purple-700">
-                      {scheme.schemeCategories?.[0] || 'Welfare Scheme'}
+                    <span className="truncate rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-2xs font-black uppercase text-sky-700">
+                      {visibleCategories.find(({ id }) => scheme.tags?.includes(id))?.label || 'Welfare Scheme'}
                     </span>
 
-                    <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-black shadow-2xs ${tierInfo.color}`}>
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                      {scheme.matchScore}% ({tierInfo.label})
+                    <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${assessmentColor}`}>
+                      {eligibilityAssessment.label}
                     </div>
                   </div>
 
@@ -436,7 +620,7 @@ export function MySchemesPage() {
                   <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
 
                   {/* Primary Benefit Summary */}
-                  <div className="mb-4 rounded-xl border border-primary-100 bg-gradient-to-r from-purple-50 to-primary-50/50 p-3.5">
+                  <div className="mb-4 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
                     <span className="text-2xs font-black uppercase tracking-wider text-primary-700 block mb-0.5">
                       Benefit:
                     </span>
@@ -446,7 +630,7 @@ export function MySchemesPage() {
                   </div>
 
                   <p className="mb-4 text-xs text-gray-500">
-                    Eligibility details and profile comparison are available on the scheme details page.
+                    {eligibilityAssessment.reason}
                   </p>
 
                   {/* Application Status Badge if exists */}
@@ -474,6 +658,7 @@ export function MySchemesPage() {
           })}
         </div>
       )}
+      </div>
     </DashboardLayout>
   );
 }

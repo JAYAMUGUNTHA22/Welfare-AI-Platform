@@ -6,14 +6,14 @@ import {
   FolderOpen,
   ArrowRight,
   Clock,
+  Sparkles as SparkleOutline,
 } from "lucide-react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { useEffect, useState } from "react";
 import { DashboardCard } from "@/components/shared/DashboardCard";
 import { SchemeCard } from "@/components/shared/SchemeCard";
 import { Card } from "@/components/ui/Card";
-import { applications, benefits, documents } from "@/data/mockData";
-import { getDashboardData, getMe } from "@/services/api";
+import { getDashboardData, getMe, saveSchemeRecommendations } from "@/services/api";
 import { useTranslation } from "react-i18next";
 import { getPersonalizedSchemeRecommendations } from "@/data/myschemeDataset";
 
@@ -48,7 +48,9 @@ export function DashboardPage() {
           console.warn("Could not refresh the user profile; using the saved profile if available.", userResult.reason);
         }
         setUser(currentUser);
-        setSchemes(await getPersonalizedSchemeRecommendations(currentUser || {}));
+        const recommendations = await getPersonalizedSchemeRecommendations(currentUser || {}, 4);
+        setSchemes(recommendations);
+        await saveSchemeRecommendations(currentUser || {}, recommendations);
       } catch (err) {
         console.error("Failed to load dashboard recommendations", err);
       }
@@ -65,11 +67,13 @@ export function DashboardPage() {
 
   return (
     <DashboardLayout>
-      <div className="mb-6">
-        <p className="text-sm text-gray-500">{greeting}</p>
-        <h1 className="text-2xl font-bold text-navy-900 lg:text-3xl">
+      <div className="dashboard-welcome mb-7">
+        <h1 className="flex items-center gap-2 text-3xl font-extrabold text-sky-600 lg:text-4xl">
           {t('dashboard.welcomeBack')}, {user?.fullName?.split(' ')[0] || 'Citizen'}
+          <SparkleOutline className="h-6 w-6 text-sky-400" />
         </h1>
+        <p className="mt-1 text-sm font-medium text-slate-600">{greeting} · Welcome to your dashboard</p>
+        <div className="mt-3 h-1 w-28 rounded-full bg-sky-500" />
       </div>
 
       {/* Summary cards */}
@@ -82,21 +86,19 @@ export function DashboardPage() {
         />
         <DashboardCard
           label={t('dashboard.activeApplications')}
-          value={dashboardData?.pendingApplications || applications.length}
+          value={dashboardData?.pendingApplications ?? 0}
           icon={FileText}
           color="accent"
         />
         <DashboardCard
           label={t('dashboard.benefitsReceived')}
-          value={`₹${(dashboardData?.benefitsReceived || benefits
-            .reduce((s, b) => s + b.receivedAmount, 0))
-            .toLocaleString("en-IN")}`}
+          value={`₹${(dashboardData?.benefitsReceived ?? 0).toLocaleString("en-IN")}`}
           icon={Wallet}
           color="success"
         />
         <DashboardCard
           label={t('dashboard.documents')}
-          value={dashboardData?.documentsCount || documents.length}
+          value={dashboardData?.documentsCount ?? 0}
           icon={FolderOpen}
           color="navy"
         />
@@ -106,7 +108,7 @@ export function DashboardPage() {
       <div className="mt-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-navy-900">
+            <h2 className="text-xl font-bold text-slate-800">
               {t('dashboard.recommendedSchemes')}
             </h2>
             <p className="mt-0.5 text-sm text-gray-500">
@@ -127,7 +129,7 @@ export function DashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600">
+          <p className="dashboard-empty-card rounded-2xl border bg-white p-5 text-sm text-slate-600">
             Add your age, occupation, income, and category in the scheme finder to get personalized suggestions.{' '}
             <Link to="/schemes" className="font-semibold text-primary-700 hover:text-primary-800">Find schemes</Link>
           </p>
@@ -136,14 +138,10 @@ export function DashboardPage() {
 
       {/* Quick actions */}
       <div className="mt-8 grid gap-4 lg:grid-cols-3">
-        <Card className="p-5">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
-              <Clock className="h-5 w-5" />
-            </div>
-            <h3 className="text-sm font-bold text-navy-900">
-              {t('dashboard.applicationStatus')}
-            </h3>
+        <Card className="dashboard-floating-card overflow-hidden p-0">
+          <div className="dashboard-panel-heading flex items-center gap-3 px-6 py-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg"><Clock className="h-6 w-6" /></div>
+            <div><h3 className="text-lg font-bold text-sky-600">Application Status</h3><p className="text-sm text-slate-500">Track your application progress</p></div>
           </div>
         </Card>
       </div>
