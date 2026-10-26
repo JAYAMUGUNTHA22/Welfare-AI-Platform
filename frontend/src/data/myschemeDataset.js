@@ -14,13 +14,75 @@ const knownJurisdictions = [
 ];
 
 const occupationTerms = {
-  agriculture: ['farmer', 'agriculturist', 'cultivator', 'agricultural worker'],
-  business: ['entrepreneur', 'self-employed', 'business owner', 'micro enterprise'],
+  agriculture: ['farmer', 'agriculturist', 'cultivator', 'agricultural worker', 'agricultural labourer', 'farm worker'],
+  business: ['entrepreneur', 'self-employed', 'business owner', 'small business', 'micro enterprise', 'startup founder'],
   fisherman: ['fisherman', 'fisherwoman', 'fisherfolk'],
-  salaried: ['salaried', 'salary employee', 'government employee', 'private employee'],
-  student: ['student', 'school pupil', 'college student'],
-  worker: ['construction worker', 'labourer', 'laborer', 'unorganised worker', 'unorganized worker'],
+  salaried: ['salaried', 'salary employee', 'government employee', 'private employee', 'employed'],
+  student: ['student', 'school pupil', 'college student', 'learner'],
+  worker: ['construction worker', 'labourer', 'laborer', 'unorganised worker', 'unorganized worker', 'daily wage', 'gig worker'],
+  jobSeeker: ['unemployed', 'job seeker', 'not employed', 'seeking work'],
+  senior: ['retired', 'pensioner', 'senior citizen'],
 };
+
+const occupationCategoryTags = {
+  agriculture: ['agriculture-rural-environment'],
+  farmer: ['agriculture-rural-environment'],
+  fisherman: ['agriculture-rural-environment', 'social-welfare-empowerment'],
+  student: ['education-learning'],
+  business: ['business-entrepreneurship', 'banking-financial-services-and-insurance'],
+  entrepreneur: ['business-entrepreneurship', 'banking-financial-services-and-insurance'],
+  unemployed: ['skills-employment'],
+  'job seeker': ['skills-employment'],
+  worker: ['skills-employment', 'social-welfare-empowerment'],
+  senior: ['health-wellness', 'social-welfare-empowerment', 'banking-financial-services-and-insurance'],
+};
+
+function getSchemeSourceType(scheme) {
+  const sourceText = `${scheme.sourceType || ''} ${scheme.providerType || ''} ${scheme.level || ''} ${scheme.provider || ''}`.toLowerCase();
+  if (/private|corporate|foundation|ngo|non.?profit|company/.test(sourceText)) return 'private';
+  if (/central|national government/.test(sourceText)) return 'central';
+  if (/state/.test(sourceText)) return 'state';
+  return 'other';
+}
+
+function getGenderStatus(profileGender, criteria) {
+  if (!profileGender) return 'unknown';
+  const gender = String(profileGender).toLowerCase();
+  const relevant = criteria.filter(({ text }) => /\b(?:female|woman|women|girl|male|man|men|boy|transgender)\b/i.test(text));
+  if (!relevant.length) return 'unknown';
+  const profileTerms = gender.includes('female') || gender.includes('woman') ? /\b(?:female|woman|women|girl)\b/i
+    : gender.includes('male') || gender.includes('man') ? /\b(?:male|man|men|boy)\b/i
+      : gender.includes('trans') ? /\btransgender\b/i : null;
+  if (!profileTerms) return 'unknown';
+  const genderRequirement = relevant.some(({ text }) => hasAffirmativeRequirement(text) && profileTerms.test(text));
+  const otherGenderRequirement = relevant.some(({ text }) => hasAffirmativeRequirement(text) && !profileTerms.test(text));
+  if (genderRequirement) return 'match';
+  if (otherGenderRequirement) return 'mismatch';
+  return 'unknown';
+}
+
+function getResidenceTypeStatus(residenceType, criteria) {
+  if (!residenceType) return 'unknown';
+  const relevant = criteria.filter(({ text }) => /\b(?:rural|urban)\b/i.test(text) && hasAffirmativeRequirement(text));
+  if (!relevant.length) return 'unknown';
+  const requiredTypes = new Set(relevant.flatMap(({ text }) => [...text.matchAll(/\b(rural|urban)\b/gi)].map((match) => match[1].toLowerCase())));
+  return requiredTypes.has(String(residenceType).toLowerCase()) ? 'match' : 'mismatch';
+}
+
+function getMaritalStatusStatus(profile, criteria) {
+  const status = profile.maritalStatus || (profile.isWidow === true ? 'Widowed' : '');
+  if (!status) return 'unknown';
+  const relevant = criteria.filter(({ text }) => /\b(?:married|unmarried|widow(?:ed)?|divorc|single)\b/i.test(text) && hasAffirmativeRequirement(text));
+  if (!relevant.length) return 'unknown';
+  const normalizedStatus = String(status).toLowerCase();
+  const profileTerms = normalizedStatus.includes('widow') ? /\bwidow(?:ed)?\b/i
+    : normalizedStatus.includes('married') ? /\bmarried\b/i
+      : normalizedStatus.includes('single') || normalizedStatus.includes('unmarried') ? /\b(?:single|unmarried)\b/i
+        : normalizedStatus.includes('divorc') ? /\bdivorc\w*\b/i : null;
+  if (!profileTerms) return 'unknown';
+  if (relevant.some(({ text }) => profileTerms.test(text))) return 'match';
+  return 'mismatch';
+}
 
 const northEasternStates = new Set([
   'arunachal pradesh', 'assam', 'manipur', 'meghalaya',
@@ -237,15 +299,15 @@ function hasRequiredSpecialStatus(criteria, profile) {
       && /\b(?:applicant|beneficiary|candidate|person|individual)\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b[^.]{0,100}\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|hearing[- ]and[- ]speech[- ]impaired)\b/i.test(text);
     if (
       disabilityRequirement
-      && !profile.isDifferentlyAbled
+      && profile.isDifferentlyAbled === false
     ) return true;
 
     const widowApplicant = /\b(?:applicant|beneficiary|candidate|person|individual)\b[^.]{0,100}\bwidow(?:ed)?\b/i.test(text)
       || /\bwidow(?:ed)?\b[^.]{0,100}\b(?:applicant|beneficiary|candidate|person|individual)\b/i.test(text);
-    if (widowApplicant && !profile.isWidow) return true;
+    if (widowApplicant && profile.isWidow === false) return true;
 
     const widowParentRequirement = /\b(?:daughter|girl child|female child)\b[^.]{0,80}\bwidow\b|\bwidow\b[^.]{0,80}\b(?:daughter|girl child|female child)\b/i.test(text);
-    if (widowParentRequirement && !profile.motherWidowed) return true;
+    if (widowParentRequirement && profile.motherWidowed === false) return true;
 
     const northEastRequirement = /\b(?:north[\s-]?eastern region|north[\s-]?east(?:ern)? states?|ner)\b/i.test(text)
       && /\b(?:domicile|resident|residing|from|belong(?:ing)? to)\b/i.test(text);
@@ -257,6 +319,7 @@ function hasRequiredSpecialStatus(criteria, profile) {
 
 function hasRequiredOccupationMismatch(profileOccupation, criteria) {
   const profile = String(profileOccupation || '').toLowerCase();
+  if (!profile) return false;
   for (const criterion of criteria) {
     const text = criterion.text;
     if (!criterion.types.includes('occupation_or_profession') || !hasAffirmativeRequirement(text)) continue;
@@ -269,7 +332,7 @@ function hasRequiredOccupationMismatch(profileOccupation, criteria) {
     const profileGroups = Object.entries(occupationTerms)
       .filter(([, terms]) => terms.some((term) => profile.includes(term)))
       .map(([group]) => group);
-    if (!profileGroups.some((group) => requiredGroups.includes(group))) return true;
+    if (profileGroups.length && !profileGroups.some((group) => requiredGroups.includes(group))) return true;
   }
 
   return false;
@@ -278,9 +341,10 @@ function hasRequiredOccupationMismatch(profileOccupation, criteria) {
 function assessScheme(scheme, profile) {
   const criteria = getEligibilityCriteria(scheme);
   const criteriaText = criteria.map(({ text }) => text).join(' ');
+  const profileOccupation = profile.occupation || profile.employmentStatus || (profile.isFarmer === true ? 'Farmer' : '');
   if (
     hasRequiredSpecialStatus(criteria, profile)
-    || hasRequiredOccupationMismatch(profile.occupation, criteria)
+    || hasRequiredOccupationMismatch(profileOccupation, criteria)
   ) return null;
 
   const age = Number(profile.age);
@@ -303,13 +367,19 @@ function assessScheme(scheme, profile) {
         ? 'match'
         : 'partial';
   const categoryStatus = getSocialCategoryStatus(profile.socialCategory, criteria);
-  const occupationStatus = getOccupationStatus(profile.occupation, criteria);
+  const occupationStatus = getOccupationStatus(profileOccupation, criteria);
+  const genderStatus = getGenderStatus(profile.gender, criteria);
+  const residenceTypeStatus = getResidenceTypeStatus(profile.residenceType, criteria);
+  const maritalStatusStatus = getMaritalStatusStatus(profile, criteria);
 
   if (
     ageStatus === 'mismatch'
     || incomeStatus === 'mismatch'
     || categoryStatus === 'mismatch'
     || occupationStatus === 'mismatch'
+    || genderStatus === 'mismatch'
+    || residenceTypeStatus === 'mismatch'
+    || maritalStatusStatus === 'mismatch'
   ) return null;
   const content = `${scheme.name} ${scheme.details || ''} ${criteriaText}`
     .toLowerCase()
@@ -317,45 +387,90 @@ function assessScheme(scheme, profile) {
     .replace(/\s+/g, ' ').trim();
   const mentionedJurisdictions = knownJurisdictions.filter((jurisdiction) => content.includes(` ${jurisdiction} `));
   const profileState = String(profile.state || '').toLowerCase();
-  if (
-    scheme.level === 'State'
-    && profileState
-    && mentionedJurisdictions.length > 0
-    && !mentionedJurisdictions.includes(profileState)
-  ) return null;
+  const sourceType = getSchemeSourceType(scheme);
+  const explicitApplicableStates = (scheme.applicableStates || scheme.states || []).map((state) => String(state).toLowerCase());
+  if (profileState && explicitApplicableStates.length && !explicitApplicableStates.includes(profileState)) return null;
+  const profileStateMatches = mentionedJurisdictions.includes(profileState);
+  const hasExplicitStateScope = mentionedJurisdictions.length > 0;
+  if (sourceType === 'state' && profileState && hasExplicitStateScope && !profileStateMatches) return null;
+  if (profileState) {
+    const residenceCriteria = criteria.filter(({ text }) => /\b(?:resident|residing|residence|domicile|belong(?:ing)? to)\b/i.test(text));
+    const scopedStates = knownJurisdictions.filter((jurisdiction) => residenceCriteria.some(({ text }) => text.toLowerCase().includes(jurisdiction)));
+    if (scopedStates.length && !scopedStates.includes(profileState)) return null;
+  }
 
-  const occupationCategories = {
-    agriculture: ['agriculture-rural-environment'],
-    farmer: ['agriculture-rural-environment'],
-    student: ['education-learning'],
-    business: ['business-entrepreneurship', 'banking-financial-services-and-insurance'],
-    entrepreneur: ['business-entrepreneurship', 'banking-financial-services-and-insurance'],
-    unemployed: ['skills-employment'],
-    worker: ['skills-employment', 'social-welfare-empowerment'],
-  };
-  const occupationKey = Object.keys(occupationCategories)
-    .find((key) => String(profile.occupation || '').toLowerCase().includes(key));
+  const occupationKey = Object.keys(occupationCategoryTags)
+    .find((key) => String(profileOccupation || '').toLowerCase().includes(key));
   const categoryAffinity = occupationKey
-    ? scheme.tags?.some((tag) => occupationCategories[occupationKey].includes(tag))
+    ? scheme.tags?.some((tag) => occupationCategoryTags[occupationKey].includes(tag))
     : false;
   const locationStatus = !profileState
     ? 'unknown'
-    : scheme.level === 'Central' || mentionedJurisdictions.includes(profileState)
+    : sourceType === 'central' || profileStateMatches
       ? 'match'
       : 'unknown';
   const profileFactors = [
-    { known: hasAge, status: ageStatus },
-    { known: incomeRange !== null, status: incomeStatus },
-    { known: Boolean(profile.socialCategory), status: categoryStatus },
-    { known: Boolean(profile.occupation), status: occupationStatus },
-    { known: scheme.level === 'State' && Boolean(profileState), status: locationStatus },
-  ].filter((factor) => factor.known);
+    { relevant: hasAge && ageBounds.length > 0, status: ageStatus },
+    { relevant: incomeRange !== null && incomeBounds.length > 0, status: incomeStatus },
+    { relevant: Boolean(profile.socialCategory) && categoryStatus !== 'unknown', status: categoryStatus },
+    { relevant: Boolean(profileOccupation) && occupationStatus !== 'unknown', status: occupationStatus },
+    { relevant: Boolean(profile.gender) && genderStatus !== 'unknown', status: genderStatus },
+    { relevant: Boolean(profile.residenceType) && residenceTypeStatus !== 'unknown', status: residenceTypeStatus },
+    { relevant: Boolean(profile.maritalStatus || profile.isWidow === true) && maritalStatusStatus !== 'unknown', status: maritalStatusStatus },
+    { relevant: sourceType === 'state' && Boolean(profileState) && hasExplicitStateScope, status: locationStatus },
+  ].filter((factor) => factor.relevant);
   const matchPoints = profileFactors.reduce((total, { status }) => (
     total + (status === 'match' ? 1 : status === 'partial' ? 0.5 : 0)
   ), 0);
   const matchScore = profileFactors.length
     ? Math.round((matchPoints / profileFactors.length) * 100)
     : 0;
+  const missingInformation = [];
+  const requirementFields = {
+    age: { available: profile.age != null && profile.age !== '', label: 'age' },
+    income: { available: incomeRange !== null, label: 'annual family income' },
+    social_category: { available: Boolean(profile.socialCategory), label: 'social category' },
+    education_or_student_status: { available: Boolean(profile.educationLevel || profile.currentCourse), label: 'education level or current course' },
+    employment_or_membership: { available: Boolean(profile.employmentStatus || profile.occupation || profile.isFarmer != null), label: 'employment or membership status' },
+    occupation_or_profession: { available: Boolean(profile.occupation), label: 'occupation' },
+    residence_or_state: { available: Boolean(profile.state), label: 'state of residence' },
+    disability_or_health: { available: profile.isDifferentlyAbled != null, label: 'disability or health status' },
+    institution_or_organization: { available: Boolean(profile.institutionType || profile.collegeType || profile.currentCourse), label: 'institution or course details' },
+    family_or_relationship: { available: Boolean(profile.familySize || profile.dependants || profile.maritalStatus || profile.firstGraduate != null || profile.isWidow != null || profile.motherWidowed != null), label: 'relevant family circumstances' },
+  };
+  const missingTypes = new Set();
+  for (const criterion of criteria) {
+    if (!hasAffirmativeRequirement(criterion.text)) continue;
+    for (const type of criterion.types) {
+      if (type === 'gender_or_marital_status') {
+        const needsGender = /\b(?:female|woman|women|girl|male|man|men|boy|transgender)\b/i.test(criterion.text);
+        const needsMarital = /\b(?:married|unmarried|widow(?:ed)?|divorc|single)\b/i.test(criterion.text);
+        if ((needsGender && !profile.gender) || (needsMarital && !profile.maritalStatus && profile.isWidow == null)) {
+          missingTypes.add(type);
+        }
+        continue;
+      }
+      const field = requirementFields[type];
+      if (field && !field.available) missingTypes.add(type);
+    }
+    if (criterion.types.includes('disability_or_health') && /\b(?:applicant|beneficiary|candidate|person|individual)\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b[^.]{0,100}\b(?:disabled|disability|differently[- ]abled|person with disabilit)\b/i.test(criterion.text)
+      && profile.isDifferentlyAbled == null) missingTypes.add('disability_or_health');
+    if (criterion.types.includes('event_or_special_condition') && /\b(?:crisis|disaster|widow|orphan|accident|illness|death|drought|flood)\b/i.test(criterion.text)
+      && !profile.specialCircumstances) missingTypes.add('event_or_special_condition');
+    if (criterion.types.includes('other_condition')) missingTypes.add('other_condition');
+  }
+  if (!profileFactors.length) missingTypes.add('other_condition');
+  if (sourceType === 'state' && !profileState) missingTypes.add('residence_or_state');
+  if (sourceType === 'state' && profileState && !hasExplicitStateScope) missingTypes.add('state_applicability');
+  if (sourceType === 'private' && !explicitApplicableStates.length && !hasExplicitStateScope) missingTypes.add('state_applicability');
+  for (const type of missingTypes) {
+    missingInformation.push(requirementFields[type]?.label
+      || (type === 'state_applicability' ? 'state applicability'
+        : type === 'other_condition' ? 'other scheme-specific conditions'
+          : type === 'gender_or_marital_status' ? 'gender or marital status'
+            : type === 'event_or_special_condition' ? 'scheme-specific circumstances'
+              : type === 'disability_or_health' ? 'disability or health status' : 'scheme-specific circumstances'));
+  }
   const matchReasons = [
     locationStatus === 'match'
       ? { label: scheme.level === 'Central' ? 'This is listed as a Central Government scheme.' : `The scheme lists ${profile.state} as an applicable jurisdiction.`, status: 'match' }
@@ -388,10 +503,24 @@ function assessScheme(scheme, profile) {
     matchReasons.push({ label: `The ${scheme.schemeCategories?.[0] || 'scheme'} category is relevant to your occupation.`, status: 'partial' });
   }
 
+  if (missingInformation.length) {
+    matchReasons.push({ label: `Needs more information: ${missingInformation.join(', ')}.`, status: 'partial' });
+  }
+
   return {
     ...scheme,
+    sourceType,
+    sourceGroup: sourceType === 'state'
+      ? `${profile.state || 'State'} Government`
+      : sourceType === 'central'
+        ? 'Central Government'
+        : sourceType === 'private'
+          ? 'Private / Corporate / Foundation / NGO'
+          : 'Other assistance',
+    eligibilityStatus: missingInformation.length ? 'Needs more information' : 'Potentially eligible',
+    missingInformation,
     matchScore,
-    matchScoreLabel: 'Profile fit',
+    matchScoreLabel: profileFactors.length ? `Profile fit · ${profileFactors.length} criteria compared` : 'Insufficient comparable criteria',
     matchTier: matchScore >= 75 ? 'Strong Match' : matchScore >= 50 ? 'Potential Match' : 'Needs Review',
     matchReasons,
     recommendationNote: 'Dataset-extracted eligibility information may be incomplete or unverified. Confirm requirements on the official scheme page.',
@@ -422,8 +551,11 @@ export function loadMyschemeSchemes() {
                 ? 'Central Government Scheme'
                 : item.level === 'State'
                   ? 'State Government Scheme'
-                  : 'Government Scheme',
+                  : item.provider || 'Government Scheme',
               level: item.level,
+              sourceType: item.sourceType || item.providerType || item.level,
+              providerType: item.providerType,
+              applicableStates: item.applicableStates || item.states || [],
               category: tags[0],
               tags,
               schemeCategories: tags.map((tag) => myschemeCategories.find((category) => category.id === tag)?.name).filter(Boolean),
@@ -446,7 +578,7 @@ export function loadMyschemeSchemes() {
   return schemesPromise;
 }
 
-export async function getPersonalizedSchemeRecommendations(profile, limit = 24) {
+export async function getPersonalizedSchemeRecommendations(profile, limit = 24, { perSource = false } = {}) {
   const normalizedProfile = {
     ...profile,
     age: Number(profile?.age) || null,
@@ -457,10 +589,23 @@ export async function getPersonalizedSchemeRecommendations(profile, limit = 24) 
   };
   const hasProfileData = normalizedProfile.state
     || normalizedProfile.age
+    || normalizedProfile.gender
     || normalizedProfile.occupation
     || normalizedProfile.socialCategory
     || normalizedProfile.annualIncomeINR != null
-    || normalizedProfile.income;
+    || normalizedProfile.income
+    || normalizedProfile.educationLevel
+    || normalizedProfile.currentCourse
+    || normalizedProfile.employmentStatus
+    || normalizedProfile.familySize != null
+    || normalizedProfile.dependants != null
+    || normalizedProfile.residenceType
+    || normalizedProfile.isFarmer != null
+    || normalizedProfile.firstGraduate != null
+    || normalizedProfile.specialCircumstances
+    || normalizedProfile.isDifferentlyAbled != null
+    || normalizedProfile.isWidow != null
+    || normalizedProfile.motherWidowed != null;
   if (!hasProfileData) return [];
 
   const schemes = await loadMyschemeSchemes();
@@ -476,7 +621,10 @@ export async function getPersonalizedSchemeRecommendations(profile, limit = 24) 
     }
   }
 
-  return [...recommendationsBySlug.values()]
+  const rankedRecommendations = [...recommendationsBySlug.values()]
     .sort((a, b) => b.rankingScore - a.rankingScore || b.matchScore - a.matchScore || a.name.localeCompare(b.name))
-    .slice(0, limit);
+  if (!perSource) return rankedRecommendations.slice(0, limit);
+  return ['state', 'central', 'private'].flatMap((sourceType) =>
+    rankedRecommendations.filter((scheme) => scheme.sourceType === sourceType).slice(0, limit)
+  );
 }

@@ -29,6 +29,7 @@ export function RegisterPage() {
       aadharNumber: form.aadharNumber.value.trim(),
       rationCard: form.rationCard.value.trim(),
       age: form.age.value ? Number(form.age.value) : undefined,
+      gender: form.gender.value || undefined,
       occupation: form.occupation.value,
       socialCategory: form.socialCategory.value,
       annualIncomeINR: form.annualIncomeINR.value ? Number(form.annualIncomeINR.value) : undefined,
@@ -140,6 +141,14 @@ export function RegisterPage() {
                     {['General', 'OBC', 'SC', 'ST', 'EWS'].map((category) => <option key={category} value={category}>{category}</option>)}
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label htmlFor="gender" className="label-base">Gender (optional)</label>
+                <select id="gender" name="gender" className="input-base">
+                  <option value="">Prefer not to say</option>
+                  {['Female', 'Male', 'Other'].map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+                </select>
               </div>
 
               <div>

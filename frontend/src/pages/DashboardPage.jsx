@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { DashboardCard } from "@/components/shared/DashboardCard";
 import { SchemeCard } from "@/components/shared/SchemeCard";
 import { Card } from "@/components/ui/Card";
-import { getDashboardData, getMe, saveSchemeRecommendations } from "@/services/api";
+import { getDashboardData, getDocumentsApi, getMe, saveSchemeRecommendations } from "@/services/api";
 import { useTranslation } from "react-i18next";
 import { getPersonalizedSchemeRecommendations } from "@/data/myschemeDataset";
 
@@ -34,12 +34,28 @@ export function DashboardPage() {
           console.warn("Could not read the cached user profile", error);
         }
 
-        const [dashResult, userResult] = await Promise.allSettled([
+        const [dashResult, userResult, documentsResult] = await Promise.allSettled([
           getDashboardData(),
           getMe(),
+          getDocumentsApi(),
         ]);
-        if (dashResult.status === "fulfilled") setDashboardData(dashResult.value);
-        else console.warn("Could not load dashboard summary data", dashResult.reason);
+        if (dashResult.status === "fulfilled") {
+          const documents = documentsResult.status === "fulfilled"
+            ? documentsResult.value?.documents
+            : null;
+          setDashboardData({
+            ...dashResult.value,
+            documentsCount: Array.isArray(documents)
+              ? documents.length
+              : dashResult.value?.documentsCount ?? 0,
+          });
+        } else {
+          console.warn("Could not load dashboard summary data", dashResult.reason);
+          const documents = documentsResult.status === "fulfilled"
+            ? documentsResult.value?.documents
+            : null;
+          if (Array.isArray(documents)) setDashboardData({ documentsCount: documents.length });
+        }
 
         const currentUser = userResult.status === "fulfilled"
           ? userResult.value?.user || userResult.value || cachedUser
@@ -48,7 +64,7 @@ export function DashboardPage() {
           console.warn("Could not refresh the user profile; using the saved profile if available.", userResult.reason);
         }
         setUser(currentUser);
-        const recommendations = await getPersonalizedSchemeRecommendations(currentUser || {}, 4);
+        const recommendations = await getPersonalizedSchemeRecommendations(currentUser || {}, 4, { perSource: true });
         setSchemes(recommendations);
         await saveSchemeRecommendations(currentUser || {}, recommendations);
       } catch (err) {
@@ -65,6 +81,13 @@ export function DashboardPage() {
       ? t('dashboard.greeting.afternoon')
       : t('dashboard.greeting.evening');
 
+  const recommendationSections = [
+    { key: 'state', title: `${user?.state || 'State'} Government Recommendations`, schemes: schemes.filter((scheme) => scheme.sourceType === 'state').slice(0, 4) },
+    { key: 'central', title: 'Central Government Recommendations', schemes: schemes.filter((scheme) => scheme.sourceType === 'central').slice(0, 4) },
+    { key: 'private', title: 'Private / Corporate Assistance', schemes: schemes.filter((scheme) => scheme.sourceType === 'private').slice(0, 4) },
+  ];
+  const visibleRecommendationCount = recommendationSections.reduce((count, section) => count + section.schemes.length, 0);
+
   return (
     <DashboardLayout>
       <div className="dashboard-welcome mb-7">
@@ -80,7 +103,7 @@ export function DashboardPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <DashboardCard
           label={t('dashboard.recommendedSchemes')}
-          value={schemes.length}
+          value={visibleRecommendationCount}
           icon={Sparkles}
           color="primary"
         />
@@ -104,15 +127,13 @@ export function DashboardPage() {
         />
       </div>
 
-      {/* Profile-matched scheme recommendations */}
-      <div className="mt-8">
+      {/* Profile-matched scheme recommendations grouped by source */}
+      <div className="mt-8 space-y-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">
-              {t('dashboard.recommendedSchemes')}
-            </h2>
+            <h2 className="text-xl font-bold text-slate-800">Recommendations for your profile</h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              Profile-based suggestions from MyScheme eligibility details. Confirm requirements on the official scheme website before applying.
+              Potential matches based on the profile and eligibility details available in the scheme catalogue. A match does not guarantee approval.
             </p>
           </div>
           <Link
@@ -122,18 +143,25 @@ export function DashboardPage() {
             {t('dashboard.viewAll')} <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
-        {schemes.length > 0 ? (
-          <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-            {schemes.slice(0, 4).map((scheme) => (
-              <SchemeCard key={scheme.id} scheme={scheme} />
-            ))}
-          </div>
-        ) : (
-          <p className="dashboard-empty-card rounded-2xl border bg-white p-5 text-sm text-slate-600">
-            Add your age, occupation, income, and category in the scheme finder to get personalized suggestions.{' '}
-            <Link to="/schemes" className="font-semibold text-primary-700 hover:text-primary-800">Find schemes</Link>
-          </p>
-        )}
+        {recommendationSections.map((section) => (
+          <section key={section.key}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <h3 className="text-lg font-bold text-slate-800">{section.title}</h3>
+              <Link to="/my-schemes" className="text-sm font-semibold text-primary-700 hover:text-primary-800">Browse all</Link>
+            </div>
+            {section.schemes.length ? (
+              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
+                {section.schemes.map((scheme) => <SchemeCard key={scheme.schemeId || scheme.id} scheme={scheme} />)}
+              </div>
+            ) : (
+              <p className="dashboard-empty-card rounded-2xl border bg-white p-4 text-sm text-slate-600">
+                {section.key === 'private'
+                  ? 'No verified private or corporate assistance records are available in the current catalogue.'
+                  : `No ${section.key === 'state' ? (user?.state || 'state') + ' ' : ''}government schemes matched the available profile details.`}
+              </p>
+            )}
+          </section>
+        ))}
       </div>
 
       {/* Quick actions */}

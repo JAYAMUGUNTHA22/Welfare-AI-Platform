@@ -24,53 +24,6 @@ const visibleCategories = [
   { id: 'banking-financial-services-and-insurance', label: 'Banking', description: 'Financial services and insurance support', icon: Wallet },
 ];
 
-const studentDetailsDefaults = {
-  collegeYear: '', collegeType: '', schoolHistory: '', class12Marks: '',
-  firstGraduate: '', familyCrisis: '',
-};
-
-const studentDetailQuestions = [
-  { key: 'collegeYear', label: 'Current college year', options: ['First year', 'Second year', 'Final year', 'Postgraduate'] },
-  { key: 'collegeType', label: 'College type', options: ['Government college', 'Government-aided college', 'Private college'] },
-  { key: 'schoolHistory', label: 'School studied from Classes 6–12', options: ['Government school', 'Government-aided Tamil-medium school', 'Private school', 'Mixed school types'] },
-  { key: 'class12Marks', label: 'Class XII marks', options: ['Below 60%', '60% to below 75%', '75% or above', 'Unknown'] },
-  { key: 'firstGraduate', label: 'First graduate in the family?', options: ['Yes', 'No', 'Not sure'] },
-  { key: 'familyCrisis', label: 'Major family or financial crisis in the last 3 years?', options: ['Yes', 'No', 'Prefer not to say'] },
-];
-
-function getAdditionalEligibilityAssessment(scheme, details) {
-  const name = scheme.name.toLowerCase();
-  if (name.includes('pudhumai penn') || name.includes('moovalur ramamirtham')) {
-    if (!details.schoolHistory) return { label: 'Needs more information', reason: 'Confirm whether Classes 6–12 were completed in an eligible government school.' };
-    return details.schoolHistory === 'Government school'
-      ? { label: 'Potential match', reason: 'Confirm the scheme’s school-history and current-course requirements.' }
-      : { label: 'May not match', reason: 'The listed school-history requirement may not be met; verify current state rules.' };
-  }
-  if (name.includes('pragati')) {
-    if (!details.collegeYear || !details.collegeType) return { label: 'Needs more information', reason: 'Confirm an eligible AICTE technical course, admission year, and college.' };
-    if (!['First year', 'Second year'].includes(details.collegeYear)) return { label: 'May not match', reason: 'The listed fresh-admission rule is limited to eligible first-year or lateral-entry students.' };
-    return { label: 'Potential match', reason: 'Confirm AICTE course approval, admission year, family income, and current rules.' };
-  }
-  if (name.includes('central sector scheme of scholarship') || name.includes('pm-usp')) {
-    if (!details.collegeYear || !details.class12Marks) return { label: 'Needs more information', reason: 'Confirm Class XII merit position, marks, admission year, and course.' };
-    if (details.collegeYear !== 'First year') return { label: 'May not match', reason: 'The scheme generally requires first-year admission for a fresh applicant.' };
-    return { label: 'Potential match', reason: 'Verify the board merit criteria and prescribed income limit.' };
-  }
-  if (name.includes('first graduate')) {
-    if (!details.firstGraduate || details.firstGraduate === 'Not sure') return { label: 'Needs more information', reason: 'Confirm whether the family meets the first-graduate criteria.' };
-    return details.firstGraduate === 'Yes'
-      ? { label: 'Potential match', reason: 'Confirm course, admission, certificate, and family criteria.' }
-      : { label: 'May not match', reason: 'The first-graduate family condition appears unmet.' };
-  }
-  if (name.includes('nagammai')) {
-    if (!details.collegeYear) return { label: 'Needs more information', reason: 'Confirm whether you are pursuing a postgraduate Arts or Science degree.' };
-    return details.collegeYear === 'Postgraduate'
-      ? { label: 'Potential match', reason: 'Confirm eligible subject and recognised college.' }
-      : { label: 'Not a match', reason: 'This scheme is for eligible postgraduate students.' };
-  }
-  return { label: 'Potential match', reason: 'Check course, institution, marks, and any family-specific rules before applying.' };
-}
-
 export function MySchemesPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -83,13 +36,6 @@ export function MySchemesPage() {
   const [categoryLoadAttempt, setCategoryLoadAttempt] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [studentDetails, setStudentDetails] = useState(() => {
-    try {
-      return { ...studentDetailsDefaults, ...JSON.parse(localStorage.getItem('recommendationStudentDetails') || '{}') };
-    } catch {
-      return studentDetailsDefaults;
-    }
-  });
 
   // Search, Filter, Sort State
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +74,7 @@ export function MySchemesPage() {
     return () => { active = false; };
   }, [selectedCategory, categoryLoadAttempt]);
 
-  const loadUserAndSchemes = async (details = studentDetails) => {
+  const loadUserAndSchemes = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -148,15 +94,24 @@ export function MySchemesPage() {
       const userProfile = {
         state: fetchedUser?.state || '',
         age: fetchedUser?.age || null,
+        gender: fetchedUser?.gender || '',
         occupation: fetchedUser?.occupation || '',
         income: fetchedUser?.income || '',
         annualIncomeINR: fetchedUser?.annualIncomeINR,
         socialCategory: fetchedUser?.socialCategory || '',
-        isDifferentlyAbled: Boolean(fetchedUser?.isDifferentlyAbled),
-        isWidow: Boolean(fetchedUser?.isWidow),
-        motherWidowed: Boolean(fetchedUser?.motherWidowed),
+        isDifferentlyAbled: fetchedUser?.isDifferentlyAbled,
+        isWidow: fetchedUser?.isWidow,
+        motherWidowed: fetchedUser?.motherWidowed,
+        educationLevel: fetchedUser?.educationLevel || '',
+        currentCourse: fetchedUser?.currentCourse || '',
+        employmentStatus: fetchedUser?.employmentStatus || '',
+        familySize: fetchedUser?.familySize,
+        dependants: fetchedUser?.dependants,
+        residenceType: fetchedUser?.residenceType || '',
+        isFarmer: fetchedUser?.isFarmer,
+        firstGraduate: fetchedUser?.firstGraduate,
+        specialCircumstances: fetchedUser?.specialCircumstances || '',
         fullName: fetchedUser?.fullName || 'You',
-        ...details,
       };
       setUser(userProfile);
       const recommendations = await getPersonalizedSchemeRecommendations(userProfile);
@@ -221,8 +176,11 @@ export function MySchemesPage() {
   const strongMatchesCount = recommendedSchemes.filter(s => s.matchScore >= 50 && s.matchScore < 90).length;
   const approachingDeadlineCount = recommendedSchemes.filter(s => s.deadline && s.deadline !== '—' && !s.deadline.includes('Open')).length;
   const hasProfileData = Boolean(
-    user?.state || user?.age || user?.occupation || user?.income
-    || user?.annualIncomeINR != null || user?.socialCategory
+    user?.state || user?.age || user?.gender || user?.occupation || user?.income
+    || user?.educationLevel || user?.currentCourse || user?.employmentStatus
+    || user?.residenceType || user?.specialCircumstances
+    || user?.isFarmer != null || user?.firstGraduate != null
+    || user?.annualIncomeINR != null || user?.familySize != null || user?.dependants != null || user?.socialCategory
   );
 
   const categoriesList = visibleCategories;
@@ -459,38 +417,6 @@ export function MySchemesPage() {
         </div>
       </div>
 
-      <section className="mb-6 rounded-2xl border border-sky-100 bg-white p-5 shadow-sm lg:p-6">
-        <div className="mb-4">
-          <h2 className="text-lg font-extrabold text-slate-800">Improve your scholarship matches</h2>
-          <p className="mt-1 text-sm text-slate-600">Add these details to see conditional matches and the requirements you still need to check.</p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {studentDetailQuestions.map(({ key, label, options }) => (
-            <label key={key} className="text-sm font-semibold text-slate-700">
-              {label}
-              <select
-                value={studentDetails[key]}
-                onChange={(event) => setStudentDetails((current) => ({ ...current, [key]: event.target.value }))}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-normal"
-              >
-                <option value="">Choose an answer</option>
-                {options.map((option) => <option key={option} value={option}>{option}</option>)}
-              </select>
-            </label>
-          ))}
-        </div>
-        <Button
-          onClick={() => {
-            localStorage.setItem('recommendationStudentDetails', JSON.stringify(studentDetails));
-            loadUserAndSchemes(studentDetails);
-          }}
-          variant="primary"
-          size="sm"
-          className="mt-4 gap-2"
-        >
-          Find more suitable schemes <ArrowRight className="h-4 w-4" />
-        </Button>
-      </section>
       {(isShowingCategory ? categoryLoading : loading) ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
@@ -579,8 +505,13 @@ export function MySchemesPage() {
                 </Card>
               );
             }
-            const eligibilityAssessment = getAdditionalEligibilityAssessment(scheme, studentDetails);
-            const assessmentColor = eligibilityAssessment.label === 'Potential match'
+            const eligibilityAssessment = {
+              label: scheme.eligibilityStatus || 'Needs more information',
+              reason: scheme.missingInformation?.length
+                ? `Check these scheme requirements: ${scheme.missingInformation.join(', ')}.`
+                : 'The available profile information appears to fit the criteria the catalogue could compare. Confirm all scheme rules before applying.',
+            };
+            const assessmentColor = eligibilityAssessment.label === 'Potentially eligible'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
               : eligibilityAssessment.label === 'Needs more information'
                 ? 'border-amber-200 bg-amber-50 text-amber-800'

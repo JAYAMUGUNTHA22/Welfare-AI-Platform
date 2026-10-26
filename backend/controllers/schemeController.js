@@ -14,17 +14,29 @@ export const saveSchemeRecommendations = async (req, res) => {
       fullName: String(profile.fullName || req.user.fullName || ''),
       state: String(profile.state || ''),
       age: profile.age === '' || profile.age == null ? null : Number(profile.age),
+      gender: String(profile.gender || ''),
       occupation: String(profile.occupation || ''),
       income: String(profile.income || ''),
       annualIncomeINR: profile.annualIncomeINR === '' || profile.annualIncomeINR == null
         ? null : Number(profile.annualIncomeINR),
       socialCategory: String(profile.socialCategory || ''),
-      isDifferentlyAbled: Boolean(profile.isDifferentlyAbled),
-      isWidow: Boolean(profile.isWidow),
-      motherWidowed: Boolean(profile.motherWidowed),
+      isDifferentlyAbled: profile.isDifferentlyAbled == null ? null : Boolean(profile.isDifferentlyAbled),
+      isWidow: profile.isWidow == null ? null : Boolean(profile.isWidow),
+      motherWidowed: profile.motherWidowed == null ? null : Boolean(profile.motherWidowed),
+      educationLevel: String(profile.educationLevel || ''),
+      currentCourse: String(profile.currentCourse || ''),
+      employmentStatus: String(profile.employmentStatus || ''),
+      familySize: profile.familySize === '' || profile.familySize == null ? null : Number(profile.familySize),
+      dependants: profile.dependants === '' || profile.dependants == null ? null : Number(profile.dependants),
+      residenceType: String(profile.residenceType || ''),
+      isFarmer: profile.isFarmer == null ? null : Boolean(profile.isFarmer),
+      firstGraduate: profile.firstGraduate == null ? null : Boolean(profile.firstGraduate),
+      specialCircumstances: String(profile.specialCircumstances || ''),
     };
     if ((savedProfile.age !== null && !Number.isFinite(savedProfile.age))
-      || (savedProfile.annualIncomeINR !== null && !Number.isFinite(savedProfile.annualIncomeINR))) {
+      || (savedProfile.annualIncomeINR !== null && !Number.isFinite(savedProfile.annualIncomeINR))
+      || (savedProfile.familySize !== null && !Number.isFinite(savedProfile.familySize))
+      || (savedProfile.dependants !== null && !Number.isFinite(savedProfile.dependants))) {
       return res.status(400).json({ message: 'Age and income must be valid numbers' });
     }
 

@@ -54,6 +54,17 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
 
       <p className="line-clamp-3 text-sm text-navy-600">{translated.benefit || t(`schemeData.${scheme.benefitSummary}`, { defaultValue: scheme.benefitSummary })}</p>
 
+      {scheme.eligibilityStatus && (
+        <div className="space-y-1.5">
+          <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${scheme.eligibilityStatus === 'Potentially eligible' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+            {scheme.eligibilityStatus}
+          </span>
+          {scheme.missingInformation?.length > 0 && (
+            <p className="text-xs text-slate-600">Still to check: {scheme.missingInformation.join(', ')}.</p>
+          )}
+        </div>
+      )}
+
       {showMatchReasons && matchReasons.length > 0 && (
         <div className="rounded-xl bg-gray-50 p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('scheme.whyMatches')}</p>

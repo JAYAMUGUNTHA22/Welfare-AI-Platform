@@ -65,13 +65,23 @@ export function ProfilePage() {
       fullName: profile?.fullName || current.name || '',
       state: profile?.state || '',
       age: profile?.age ?? '',
+      gender: profile?.gender || '',
       occupation: profile?.occupation || '',
       income: profile?.income || '',
+      educationLevel: profile?.educationLevel || '',
+      currentCourse: profile?.currentCourse || '',
+      employmentStatus: profile?.employmentStatus || '',
+      familySize: profile?.familySize ?? '',
+      dependants: profile?.dependants ?? '',
+      residenceType: profile?.residenceType || '',
+      isFarmer: profile?.isFarmer,
+      firstGraduate: profile?.firstGraduate,
+      specialCircumstances: profile?.specialCircumstances || '',
       annualIncomeINR: profile?.annualIncomeINR ?? '',
       socialCategory: profile?.socialCategory || '',
-      isDifferentlyAbled: Boolean(profile?.isDifferentlyAbled),
-      isWidow: Boolean(profile?.isWidow),
-      motherWidowed: Boolean(profile?.motherWidowed),
+      isDifferentlyAbled: profile?.isDifferentlyAbled,
+      isWidow: profile?.isWidow,
+      motherWidowed: profile?.motherWidowed,
     });
     setEditing(true);
   };
@@ -85,13 +95,23 @@ export function ProfilePage() {
       fullName: editValues.fullName.trim(),
       state: editValues.state,
       age: editValues.age === '' ? null : Number(editValues.age),
+      gender: editValues.gender || '',
       occupation: editValues.occupation.trim(),
       income: editValues.income,
+      educationLevel: editValues.educationLevel,
+      currentCourse: editValues.currentCourse.trim(),
+      employmentStatus: editValues.employmentStatus,
+      familySize: editValues.familySize === '' ? null : Number(editValues.familySize),
+      dependants: editValues.dependants === '' ? null : Number(editValues.dependants),
+      residenceType: editValues.residenceType || '',
+      isFarmer: editValues.isFarmer == null || editValues.isFarmer === '' ? null : Boolean(editValues.isFarmer),
+      firstGraduate: editValues.firstGraduate == null || editValues.firstGraduate === '' ? null : Boolean(editValues.firstGraduate),
+      specialCircumstances: editValues.specialCircumstances.trim(),
       annualIncomeINR: editValues.annualIncomeINR === '' ? null : Number(editValues.annualIncomeINR),
-      socialCategory: editValues.socialCategory || 'General',
-      isDifferentlyAbled: Boolean(editValues.isDifferentlyAbled),
-      isWidow: Boolean(editValues.isWidow),
-      motherWidowed: Boolean(editValues.motherWidowed),
+      socialCategory: editValues.socialCategory || '',
+      isDifferentlyAbled: editValues.isDifferentlyAbled == null ? null : Boolean(editValues.isDifferentlyAbled),
+      isWidow: editValues.isWidow == null ? null : Boolean(editValues.isWidow),
+      motherWidowed: editValues.motherWidowed == null ? null : Boolean(editValues.motherWidowed),
     };
 
     try {
@@ -237,6 +257,13 @@ export function ProfilePage() {
                     <input type="number" min="1" max="120" value={editValues.age ?? ''} onChange={(event) => setEditValues({ ...editValues, age: event.target.value })} className="input-base mt-1" />
                   </label>
                   <label className="text-sm font-medium text-navy-700">
+                    Gender (optional)
+                    <select value={editValues.gender || ''} onChange={(event) => setEditValues({ ...editValues, gender: event.target.value })} className="input-base mt-1">
+                      <option value="">Prefer not to say</option>
+                      {['Female', 'Male', 'Other'].map((gender) => <option key={gender} value={gender}>{gender}</option>)}
+                    </select>
+                  </label>
+                  <label className="text-sm font-medium text-navy-700">
                     Occupation
                     <input value={editValues.occupation || ''} onChange={(event) => setEditValues({ ...editValues, occupation: event.target.value })} className="input-base mt-1" />
                   </label>
@@ -260,26 +287,78 @@ export function ProfilePage() {
                   </label>
                   <label className="text-sm font-medium text-navy-700">
                     Are you differently abled?
-                    <select value={editValues.isDifferentlyAbled ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isDifferentlyAbled: event.target.value === 'yes' })} className="input-base mt-1">
+                    <select value={editValues.isDifferentlyAbled == null ? '' : editValues.isDifferentlyAbled ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isDifferentlyAbled: event.target.value === '' ? null : event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="">Not specified</option>
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
                     </select>
                   </label>
                   <label className="text-sm font-medium text-navy-700">
                     Are you a widow?
-                    <select value={editValues.isWidow ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isWidow: event.target.value === 'yes' })} className="input-base mt-1">
+                    <select value={editValues.isWidow == null ? '' : editValues.isWidow ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, isWidow: event.target.value === '' ? null : event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="">Not specified</option>
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
                     </select>
                   </label>
                   <label className="text-sm font-medium text-navy-700 sm:col-span-2">
                     Is your mother widowed?
-                    <select value={editValues.motherWidowed ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, motherWidowed: event.target.value === 'yes' })} className="input-base mt-1">
+                    <select value={editValues.motherWidowed == null ? '' : editValues.motherWidowed ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, motherWidowed: event.target.value === '' ? null : event.target.value === 'yes' })} className="input-base mt-1">
+                      <option value="">Not specified</option>
                       <option value="no">No</option>
                       <option value="yes">Yes</option>
                     </select>
                   </label>
                 </div>
+                <details className="rounded-xl border border-slate-200 p-4">
+                  <summary className="cursor-pointer text-sm font-semibold text-slate-700">Optional details for schemes that ask for them</summary>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <label className="text-sm font-medium text-navy-700">
+                      Education level
+                      <select value={editValues.educationLevel || ''} onChange={(event) => setEditValues({ ...editValues, educationLevel: event.target.value })} className="input-base mt-1">
+                        <option value="">Not specified</option>
+                        {['No formal education', 'Primary', 'Secondary', 'Higher secondary', 'Diploma / ITI', 'Undergraduate', 'Postgraduate', 'Other'].map((level) => <option key={level} value={level}>{level}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">
+                      Current course or occupation detail
+                      <input value={editValues.currentCourse || ''} onChange={(event) => setEditValues({ ...editValues, currentCourse: event.target.value })} className="input-base mt-1" maxLength={120} />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">
+                      Employment status
+                      <select value={editValues.employmentStatus || ''} onChange={(event) => setEditValues({ ...editValues, employmentStatus: event.target.value })} className="input-base mt-1">
+                        <option value="">Not specified</option>
+                        {['Employed', 'Self-employed', 'Unemployed', 'Seeking work', 'Retired', 'Student'].map((status) => <option key={status} value={status}>{status}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">
+                      Residence type
+                      <select value={editValues.residenceType || ''} onChange={(event) => setEditValues({ ...editValues, residenceType: event.target.value })} className="input-base mt-1">
+                        <option value="">Not specified</option>
+                        <option value="Rural">Rural</option><option value="Urban">Urban</option>
+                      </select>
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">Family members
+                      <input type="number" min="1" value={editValues.familySize ?? ''} onChange={(event) => setEditValues({ ...editValues, familySize: event.target.value })} className="input-base mt-1" />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">Dependants
+                      <input type="number" min="0" value={editValues.dependants ?? ''} onChange={(event) => setEditValues({ ...editValues, dependants: event.target.value })} className="input-base mt-1" />
+                    </label>
+                    {[
+                      ['isFarmer', 'Are you a farmer or agricultural worker?'],
+                      ['firstGraduate', 'Are you the first graduate in your family?'],
+                    ].map(([key, label]) => (
+                      <label key={key} className="text-sm font-medium text-navy-700">{label}
+                        <select value={editValues[key] == null ? '' : editValues[key] ? 'yes' : 'no'} onChange={(event) => setEditValues({ ...editValues, [key]: event.target.value === '' ? null : event.target.value === 'yes' })} className="input-base mt-1">
+                          <option value="">Not specified</option><option value="no">No</option><option value="yes">Yes</option>
+                        </select>
+                      </label>
+                    ))}
+                    <label className="text-sm font-medium text-navy-700 sm:col-span-2">Relevant special circumstances (optional)
+                      <textarea value={editValues.specialCircumstances || ''} onChange={(event) => setEditValues({ ...editValues, specialCircumstances: event.target.value })} className="input-base mt-1 min-h-20" maxLength={500} placeholder="Only include details relevant to scheme eligibility." />
+                    </label>
+                  </div>
+                </details>
                 <div className="flex flex-wrap justify-end gap-2 pt-2">
                   <Button type="button" variant="outline" onClick={() => setEditing(false)}>Cancel</Button>
                   <Button type="submit" disabled={saving}><Save className="h-4 w-4" /> {saving ? 'Saving…' : 'Save profile'}</Button>
