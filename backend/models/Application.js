@@ -1,12 +1,5 @@
 import mongoose from 'mongoose';
 
-const paymentSchema = new mongoose.Schema({
-  amount: { type: Number, required: true, min: 0.01, max: 1_000_000_000 },
-  receivedAt: { type: Date, required: true },
-  reference: { type: String, trim: true, maxlength: 120, default: '' },
-  notes: { type: String, trim: true, maxlength: 500, default: '' },
-}, { timestamps: true });
-
 const applicationSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'Citizen', required: true, index: true },
   schemeId: { type: String, required: true, trim: true, maxlength: 160 },
@@ -19,7 +12,6 @@ const applicationSchema = new mongoose.Schema({
   startedAt: { type: Date, default: Date.now },
   submittedAt: { type: Date, default: null },
   confirmationExpiresAt: { type: Date, default: null, index: true },
-  payments: { type: [paymentSchema], default: [] },
 }, { timestamps: true });
 
 applicationSchema.index({ userId: 1, schemeId: 1 }, { unique: true });

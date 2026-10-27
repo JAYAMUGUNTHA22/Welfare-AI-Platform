@@ -131,13 +131,6 @@ export function cancelPendingApplicationApi(id) {
   return request(`/applications/${id}/cancel`, { method: 'POST' });
 }
 
-export function addBenefitPaymentApi(id, payment) {
-  return request(`/applications/${id}/payments`, {
-    method: 'POST',
-    body: JSON.stringify(payment),
-  });
-}
-
 // ── Documents ─────────────────────────────────────────────────────────────────
 export function getDocumentsApi() {
   return request('/documents');

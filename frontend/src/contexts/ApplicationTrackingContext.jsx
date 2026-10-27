@@ -46,6 +46,13 @@ function getSchemeSnapshot(scheme, applicationLink = {}) {
     .filter((value) => typeof value === 'string')
     .join(' ');
   const schemeId = scheme?.schemeId || scheme?.myschemeSlug || scheme?.slug || scheme?.id;
+  const benefitValue = scheme?.benefitSummary ?? scheme?.benefits ?? scheme?.benefitAmount ?? scheme?.benefit_description ?? scheme?.benefit;
+  const benefitSummary = (Array.isArray(benefitValue) ? benefitValue : [benefitValue])
+    .map((value) => typeof value === 'string' || typeof value === 'number'
+      ? String(value)
+      : value?.benefit_text || value?.description || value?.amount || '')
+    .filter(Boolean)
+    .join('\n');
 
   return {
     schemeId: String(schemeId || ''),
@@ -55,7 +62,7 @@ function getSchemeSnapshot(scheme, applicationLink = {}) {
     applicationMethod: applicationLink.type?.startsWith('offline') || /\boffline\b/i.test(applicationText)
       ? 'offline'
       : applicationLink.url ? 'online' : 'unknown',
-    benefitSummary: String(scheme?.benefitSummary || scheme?.benefits || ''),
+    benefitSummary,
   };
 }
 
@@ -236,7 +243,7 @@ export function ApplicationTrackingProvider({ children }) {
       setInfo({
         title: submitted ? 'Application saved' : 'No application added',
         message: submitted
-          ? 'Your confirmation is recorded in My Applications. Any payment will appear in My Benefits after you record the amount received.'
+          ? 'Your confirmation is recorded in My Applications. Scheme-listed benefit details are available in My Benefits; the department decides the final approved amount.'
           : 'You can return to this scheme and apply later. The reserved application slot has been released.',
         action: 'applications',
       });

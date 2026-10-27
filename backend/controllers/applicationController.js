@@ -1,4 +1,3 @@
-import mongoose from 'mongoose';
 import { Application } from '../models/Application.js';
 import { Citizen } from '../models/Citizen.js';
 
@@ -171,30 +170,5 @@ export async function reserveOfflineApplication(req, res) {
   } catch (error) {
     console.error('Could not reserve offline application:', error.message);
     res.status(500).json({ message: 'Could not reserve this application right now.' });
-  }
-}
-
-export async function addBenefitPayment(req, res) {
-  try {
-    const amount = Number(req.body?.amount);
-    const receivedAt = new Date(req.body?.receivedAt);
-    if (!Number.isFinite(amount) || amount <= 0 || amount > 1_000_000_000 || Number.isNaN(receivedAt.getTime())) {
-      return res.status(400).json({ message: 'Enter a valid amount and payment date.' });
-    }
-
-    const application = await Application.findOne({ _id: req.params.id, userId: req.user._id, status: 'submitted' });
-    if (!application) return res.status(404).json({ message: 'A submitted application was not found.' });
-    application.payments.push({
-      amount,
-      receivedAt,
-      reference: String(req.body?.reference || '').trim().slice(0, 120),
-      notes: String(req.body?.notes || '').trim().slice(0, 500),
-    });
-    await application.save();
-    res.status(201).json({ application });
-  } catch (error) {
-    console.error('Could not record benefit payment:', error.message);
-    if (error instanceof mongoose.Error.ValidationError) return res.status(400).json({ message: 'Check the payment details and try again.' });
-    res.status(500).json({ message: 'Could not save the payment right now.' });
   }
 }
