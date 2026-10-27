@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -6,7 +5,8 @@ import { MatchScore } from './MatchScore';
 import { VerificationBadge } from './VerificationBadge';
 import { useTranslation } from 'react-i18next';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
-import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
+import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
+import { SchemeDetailsButton, SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 
 const reasonIcon = {
   match: <CheckCircle2 className="h-4 w-4 text-success-500 shrink-0" />,
@@ -32,12 +32,12 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
   const schemeNameKey = schemeTranslationKeys[sid] || sid;
   const matchReasons = scheme.matchReasons || [];
   const translated = getSchemeTranslation(sid, i18n.language, scheme);
-  const applicationUrl = getSchemeApplicationUrl(scheme);
   return (
     <Card className="flex flex-col gap-4 p-5" hover>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <Link
+          <SchemeDetailsLink
+            scheme={scheme}
             to={`/schemes/${sid}`}
             state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons, recommendationNote: scheme.recommendationNote } }}
             className="group"
@@ -45,7 +45,7 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
             <h3 className="text-base font-bold text-navy-900 group-hover:text-primary-700 transition-colors">
               {translated.name || t(`schemeNames.${schemeNameKey}`, { defaultValue: t(`schemeData.${scheme.name}`, { defaultValue: scheme.name }) })}
             </h3>
-          </Link>
+          </SchemeDetailsLink>
           <p className="mt-1 text-sm text-gray-500">{translated.provider || t(`schemeData.${scheme.provider}`, { defaultValue: scheme.provider })}</p>
           {scheme.verification && <div className="mt-2"><VerificationBadge status={scheme.verification} /></div>}
         </div>
@@ -80,8 +80,8 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
       )}
 
       <div className="flex flex-wrap gap-2 mt-auto pt-2">
-        <Button to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm">{t('scheme.viewDetails')}</Button>
-        <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm">{applicationUrl ? t('scheme.apply') : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" /></Button>
+        <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm">{t('scheme.viewDetails')}</SchemeDetailsButton>
+        <SchemeApplicationAction scheme={scheme} applyLabel={t('scheme.apply')} variant="primary" size="sm" />
       </div>
     </Card>
   );

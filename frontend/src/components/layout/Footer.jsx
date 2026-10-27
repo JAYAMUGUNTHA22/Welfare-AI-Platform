@@ -36,8 +36,8 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-6 sm:flex-row">
-          <p className="text-xs text-gray-400">© 2026 WelfareAI. A student project for S7 Computer Science mini project.</p>
-          <p className="flex items-center gap-1.5 text-xs text-gray-400">Built with <Heart className="h-3.5 w-3.5 text-error-400" /> for social welfare</p>
+          <p className="text-xs text-gray-400">{t('footerCopyright')}</p>
+          <p className="flex items-center gap-1.5 text-xs text-gray-400">{t('footerBuiltWith')} <Heart className="h-3.5 w-3.5 text-error-400" /> {t('footerForWelfare')}</p>
         </div>
       </div>
     </footer>

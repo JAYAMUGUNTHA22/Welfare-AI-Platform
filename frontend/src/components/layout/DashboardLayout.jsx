@@ -20,7 +20,7 @@ const navItems = [
   { label: 'feedback', to: '/feedback', icon: MessageSquare },
 ];
 
-export function DashboardLayout({ children, title, subtitle, backTo }) {
+export function DashboardLayout({ children, title, subtitle, backTo, onBack }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -87,7 +87,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
                   onClick={() => setProfileMenuOpen(false)}
                   className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-navy-700 hover:bg-gray-50"
                 >
-                  <User className="h-3.5 w-3.5" /> Profile
+                  <User className="h-3.5 w-3.5" /> {t('menu.profile', { defaultValue: 'Profile' })}
                 </Link>
                 <button
                   onClick={() => {
@@ -97,7 +97,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
                   }}
                   className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs text-error-600 hover:bg-error-50"
                 >
-                  <LogOut className="h-3.5 w-3.5" /> Logout
+                  <LogOut className="h-3.5 w-3.5" /> {t('common.logout', { defaultValue: 'Logout' })}
                 </button>
               </div>
             </>
@@ -135,7 +135,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
                   aria-label={t('common.changeLanguage')}
                   className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-navy-700 focus:border-primary-500 cursor-pointer shadow-2xs"
                 >
-                  {['English', 'हिंदी', 'தமிழ்'].map((language) => (
+                  {['English', 'हिंदी', 'தமிழ்', 'मराठी', 'తెలుగు', 'বাংলা', 'ગુજરાতી', 'ಕನ್ನಡ'].map((language) => (
                     <option key={language} value={language}>{language}</option>
                   ))}
                 </select>
@@ -157,7 +157,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
                     <div className="fixed inset-0 z-40" onClick={() => setProfileMenuOpen(false)} />
                     <div className="absolute right-0 top-11 z-50 w-56 rounded-2xl border border-gray-200 bg-white p-3 shadow-xl animate-scale-in">
                       <div className="border-b border-gray-100 pb-3 mb-2 px-2">
-                        <p className="font-bold text-navy-900 text-sm truncate">{user?.fullName || 'Citizen User'}</p>
+                        <p className="font-bold text-navy-900 text-sm truncate">{user?.fullName || t('citizenUser')}</p>
                         <p className="text-xs text-gray-500 truncate">{user?.email || 'citizen@welfare.gov.in'}</p>
                         <span className="mt-1 inline-block rounded-full bg-sky-50 text-primary-700 text-2xs font-extrabold px-2 py-0.5 border border-sky-200">
                           {t('common.citizenAccount', { defaultValue: 'Citizen Account' })}
@@ -189,7 +189,7 @@ export function DashboardLayout({ children, title, subtitle, backTo }) {
             </div>
 
             {backTo && (
-              <Link to={backTo} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary-600">
+              <Link to={backTo} onClick={onBack ? (event) => { event.preventDefault(); onBack(); } : undefined} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary-600">
                 <ChevronLeft className="h-4 w-4" /> {t('common.back', { defaultValue: 'Back' })}
               </Link>
             )}

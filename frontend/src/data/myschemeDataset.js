@@ -212,7 +212,7 @@ function getSocialCategoryStatus(profileCategory, criteria) {
   const category = profileCategory.toLowerCase();
   const categoryMatches = {
     sc: ['sc', 'scheduled caste'],
-    st: ['st', 'scheduled tribe'],
+    st: ['st', 'scheduled tribe', 'tribal', 'adivasi'],
     obc: ['obc', 'other backward classes'],
     ews: ['ews', 'economically weaker section'],
     general: ['general'],
@@ -220,14 +220,23 @@ function getSocialCategoryStatus(profileCategory, criteria) {
   const normalizedCategory = categoryMatches[category] || [category];
   const qualifyingCategories = new Set();
   const excludedCategories = new Set();
-  const categoryPattern = /\b(sc|st|obc|ews|general|scheduled caste|scheduled tribe|other backward classes|economically weaker sections?)\b/gi;
+  const categoryPattern = /\b(sc|st|obc|ews|general|bc|mbc|dnc|tribal|adivasi|scheduled castes?|scheduled tribes?|backward classes|most backward classes|denotified communities|other backward classes|economically weaker sections?)\b/gi;
+  let stateBackwardRequirement = false;
 
   for (const criterion of criteria) {
     const text = criterion.text.toLowerCase();
-    if (!criterion.types.includes('social_category') && !categoryPattern.test(text)) continue;
+    const hasTribalGroupRequirement = /\b(?:belong(?:s|ing)? to|member of|community|caste|category|tribe|tribal group|tribal household|pvtg)\b/.test(text)
+      || /\b(?:applicant|beneficiary|candidate|person|individual)\b[^.]{0,80}\b(?:must|should|shall)\s+be\s+(?:a\s+)?(?:tribal|adivasi)\b/.test(text);
+    const textHasCategory = categoryPattern.test(text);
+    if (!criterion.types.includes('social_category') && (!textHasCategory || (/\b(?:tribal|adivasi)\b/.test(text) && !hasTribalGroupRequirement))) continue;
     categoryPattern.lastIndex = 0;
-    const mentions = [...text.matchAll(categoryPattern)];
-    const qualifiesCategory = /\b(?:only|must belong|should belong|belonging to|belongs to|eligible(?: for| under)?|reserved for|applicants? from|beneficiaries? from)\b/i.test(text);
+    const mentions = [...text.matchAll(categoryPattern)].filter((mention) => (
+      !/\b(?:tribal|adivasi)\b/.test(mention[0]) || hasTribalGroupRequirement
+    ));
+    const qualifiesCategory = /\b(?:only|must belong|should belong|belonging to|belongs to|must be|should be|shall be|eligible(?: for| under)?|reserved for|applicants? from|beneficiaries? from)\b/i.test(text);
+    if (qualifiesCategory && /\b(?:bc|mbc|dnc|backward classes|most backward classes|denotified communities)\b/i.test(text)) {
+      stateBackwardRequirement = true;
+    }
     const excludedClause = text.match(/\b(?:other than|except|excluding|not)\s+(?:the\s+)?((?:sc|st|obc|ews|general)(?:\s*[\/,&]\s*(?:sc|st|obc|ews|general))*)\b/i);
     if (excludedClause) {
       for (const excluded of excludedClause[1].matchAll(/\b(sc|st|obc|ews|general)\b/gi)) {
@@ -237,18 +246,23 @@ function getSocialCategoryStatus(profileCategory, criteria) {
 
     for (const mention of mentions) {
       const beforeMention = text.slice(Math.max(0, mention.index - 24), mention.index);
+      const normalizedMention = mention[0].replace(/\bcastes\b/gi, 'caste').replace(/\btribes\b/gi, 'tribe');
       if (/\b(?:other than|except|excluding|not)\s*$/.test(beforeMention)) {
-        excludedCategories.add(mention[0]);
+        excludedCategories.add(normalizedMention);
       } else if (qualifiesCategory) {
-        qualifyingCategories.add(mention[0]);
+        qualifyingCategories.add(normalizedMention);
       }
     }
   }
 
   if ([...excludedCategories].some((mention) => normalizedCategory.includes(mention))) return 'mismatch';
   for (const excluded of excludedCategories) qualifyingCategories.delete(excluded);
-  if (!qualifyingCategories.size) return excludedCategories.size ? 'match' : 'unknown';
+  if (!qualifyingCategories.size) {
+    if (stateBackwardRequirement) return category === 'obc' ? 'partial' : 'mismatch';
+    return excludedCategories.size ? 'match' : 'unknown';
+  }
   if ([...qualifyingCategories].some((mention) => normalizedCategory.includes(mention))) return 'match';
+  if (stateBackwardRequirement && category === 'obc') return 'partial';
   return 'mismatch';
 }
 
@@ -293,10 +307,14 @@ function hasRequiredSpecialStatus(criteria, profile) {
     if (!hasAffirmativeRequirement(text)) continue;
 
     const hasApplicant = /\b(?:applicant|beneficiary|candidate|person|individual)\b/i.test(text);
-    const disabilityMention = /\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|hearing[- ]and[- ]speech[- ]impaired)\b/i.test(text);
-    const disabilityRequirement = hasApplicant
-      && disabilityMention
-      && /\b(?:applicant|beneficiary|candidate|person|individual)\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b[^.]{0,100}\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|hearing[- ]and[- ]speech[- ]impaired)\b/i.test(text);
+    const disabilityMention = /\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|hearing[- ]and[- ]speech[- ]impaired|visually impaired|visual impairment|blind(?:ness)?|low vision|hearing[- ]impaired|orthopedically handicapped|specially abled|divyang)\b/i.test(text);
+    const disabilityRequirement = disabilityMention && (
+      (hasApplicant && (
+        /\b(?:applicant|beneficiary|candidate|person|individual|student)\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b[^.]{0,100}\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|hearing[- ]and[- ]speech[- ]impaired|visually impaired|visual impairment|blind(?:ness)?|low vision|hearing[- ]impaired|orthopedically handicapped|specially abled|divyang)\b/i.test(text)
+        || /\b(?:applicant|beneficiary|candidate|person|individual|student)\b[^.]{0,100}\b(?:suffer(?:ing)? from|has|have|with)\b[^.]{0,100}\b(?:disabilit(?:y|ies)|visually impaired|visual impairment|blind(?:ness)?|low vision|hearing[- ]impaired|orthopedically handicapped)\b/i.test(text)
+      ))
+      || /\b(?:percentage|degree|extent|level) of disability\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b/i.test(text)
+    );
     if (
       disabilityRequirement
       && profile.isDifferentlyAbled === false
@@ -332,16 +350,50 @@ function hasRequiredOccupationMismatch(profileOccupation, criteria) {
     const profileGroups = Object.entries(occupationTerms)
       .filter(([, terms]) => terms.some((term) => profile.includes(term)))
       .map(([group]) => group);
-    if (profileGroups.length && !profileGroups.some((group) => requiredGroups.includes(group))) return true;
+    if (!profileGroups.length || !profileGroups.some((group) => requiredGroups.includes(group))) return true;
   }
 
   return false;
 }
 
+function getEducationStatus(profile, criteria) {
+  const educationText = `${profile.educationLevel || ''} ${profile.currentCourse || ''}`.toLowerCase();
+  const employmentStatus = String(profile.employmentStatus || '').toLowerCase();
+  const occupation = String(profile.occupation || '').toLowerCase();
+  const explicitStudent = employmentStatus === 'student'
+    || /\b(?:student|pupil|learner)\b/.test(occupation)
+    || /\b(?:studying|enrolled|course)\b/.test(educationText);
+  const explicitNonStudent = Boolean(employmentStatus || occupation) && !explicitStudent;
+  const requirements = criteria.filter(({ text, types }) => (
+    types.some((type) => ['education_or_student_status', 'institution_or_organization'].includes(type))
+    && hasAffirmativeRequirement(text)
+  ));
+  if (!requirements.length) return 'unknown';
+
+  let matched = false;
+  for (const { text } of requirements) {
+    if (/\b(?:student|pupil|learner)\b/i.test(text)) {
+      if (explicitStudent) matched = true;
+      else if (explicitNonStudent) return 'mismatch';
+    }
+
+    const lowerText = text.toLowerCase();
+    const belowHigherEducation = /\b(?:class|standard|grade)\s*(?:xii|12|12th|eleven|11|ten|10|tenth)\b|\bwithin\s+xii\s+standard\b/.test(lowerText);
+    if (belowHigherEducation && /\b(?:undergraduate|postgraduate|graduate|degree)\b/.test(educationText)) return 'mismatch';
+
+    const requiresDegree = /\b(?:undergraduate|postgraduate|ug\/pg|degree course|bachelor|master)\b/.test(lowerText);
+    if (requiresDegree && /\b(?:primary|secondary|higher secondary|class\s*(?:x|xi|xii|10|11|12))\b/.test(educationText)) return 'mismatch';
+    if (requiresDegree && /\b(?:undergraduate|postgraduate|bachelor|master|degree)\b/.test(educationText)) matched = true;
+  }
+
+  return matched ? 'match' : 'unknown';
+}
+
 function assessScheme(scheme, profile) {
   const criteria = getEligibilityCriteria(scheme);
   const criteriaText = criteria.map(({ text }) => text).join(' ');
-  const profileOccupation = profile.occupation || profile.employmentStatus || (profile.isFarmer === true ? 'Farmer' : '');
+  const profileOccupation = [profile.occupation, profile.employmentStatus, profile.isFarmer === true ? 'Farmer' : '']
+    .filter(Boolean).join(' ');
   if (
     hasRequiredSpecialStatus(criteria, profile)
     || hasRequiredOccupationMismatch(profileOccupation, criteria)
@@ -371,6 +423,7 @@ function assessScheme(scheme, profile) {
   const genderStatus = getGenderStatus(profile.gender, criteria);
   const residenceTypeStatus = getResidenceTypeStatus(profile.residenceType, criteria);
   const maritalStatusStatus = getMaritalStatusStatus(profile, criteria);
+  const educationStatus = getEducationStatus(profile, criteria);
 
   if (
     ageStatus === 'mismatch'
@@ -380,6 +433,7 @@ function assessScheme(scheme, profile) {
     || genderStatus === 'mismatch'
     || residenceTypeStatus === 'mismatch'
     || maritalStatusStatus === 'mismatch'
+    || educationStatus === 'mismatch'
   ) return null;
   const content = `${scheme.name} ${scheme.details || ''} ${criteriaText}`
     .toLowerCase()
@@ -417,8 +471,10 @@ function assessScheme(scheme, profile) {
     { relevant: Boolean(profile.gender) && genderStatus !== 'unknown', status: genderStatus },
     { relevant: Boolean(profile.residenceType) && residenceTypeStatus !== 'unknown', status: residenceTypeStatus },
     { relevant: Boolean(profile.maritalStatus || profile.isWidow === true) && maritalStatusStatus !== 'unknown', status: maritalStatusStatus },
+    { relevant: Boolean(profile.educationLevel || profile.currentCourse || profile.employmentStatus || profile.occupation) && educationStatus !== 'unknown', status: educationStatus },
     { relevant: sourceType === 'state' && Boolean(profileState) && hasExplicitStateScope, status: locationStatus },
   ].filter((factor) => factor.relevant);
+  if (!profileFactors.some(({ status }) => status === 'match' || status === 'partial')) return null;
   const matchPoints = profileFactors.reduce((total, { status }) => (
     total + (status === 'match' ? 1 : status === 'partial' ? 0.5 : 0)
   ), 0);
@@ -430,7 +486,7 @@ function assessScheme(scheme, profile) {
     age: { available: profile.age != null && profile.age !== '', label: 'age' },
     income: { available: incomeRange !== null, label: 'annual family income' },
     social_category: { available: Boolean(profile.socialCategory), label: 'social category' },
-    education_or_student_status: { available: Boolean(profile.educationLevel || profile.currentCourse), label: 'education level or current course' },
+    education_or_student_status: { available: Boolean(profile.educationLevel || profile.currentCourse || profile.employmentStatus || profile.occupation), label: 'education level or current course' },
     employment_or_membership: { available: Boolean(profile.employmentStatus || profile.occupation || profile.isFarmer != null), label: 'employment or membership status' },
     occupation_or_profession: { available: Boolean(profile.occupation), label: 'occupation' },
     residence_or_state: { available: Boolean(profile.state), label: 'state of residence' },
@@ -439,6 +495,23 @@ function assessScheme(scheme, profile) {
     family_or_relationship: { available: Boolean(profile.familySize || profile.dependants || profile.maritalStatus || profile.firstGraduate != null || profile.isWidow != null || profile.motherWidowed != null), label: 'relevant family circumstances' },
   };
   const missingTypes = new Set();
+  if (categoryStatus === 'partial') missingTypes.add('social_category');
+  if (incomeStatus === 'partial') missingTypes.add('income');
+  const needsTribalCategory = criteria.some(({ text }) => (
+    hasAffirmativeRequirement(text)
+    && /\b(?:tribal|adivasi|scheduled tribe|pvtg|particularly vulnerable tribal groups?)\b/i.test(text)
+    && /\b(?:belong(?:s|ing)? to|member of|community|caste|category|tribe|tribal group|tribal household|eligible)\b/i.test(text)
+  ));
+  if (needsTribalCategory && !profile.socialCategory) missingTypes.add('social_category');
+  const needsDisabilityStatus = criteria.some(({ text }) => (
+    (/\b(?:applicant|beneficiary|candidate|person|individual|student)\b/i.test(text)
+      && /\b(?:differently[- ]abled|person with disabilit|disabled|disabilit(?:y|ies)|visually impaired|visual impairment|blind(?:ness)?|low vision|hearing[- ]impaired|orthopedically handicapped|specially abled|divyang)\b/i.test(text)
+      && (hasAffirmativeRequirement(text) || /\b(?:suffer(?:ing)? from|has|have|with)\b/i.test(text)))
+    || /\b(?:percentage|degree|extent|level) of disability\b[^.]{0,100}\b(?:must|should|shall)(?!\s+not)\b/i.test(text)
+  ));
+  if (needsDisabilityStatus && (profile.isDifferentlyAbled == null || profile.isDifferentlyAbled === true)) {
+    missingTypes.add('disability_or_health');
+  }
   for (const criterion of criteria) {
     if (!hasAffirmativeRequirement(criterion.text)) continue;
     for (const type of criterion.types) {
@@ -521,10 +594,12 @@ function assessScheme(scheme, profile) {
     missingInformation,
     matchScore,
     matchScoreLabel: profileFactors.length ? `Profile fit · ${profileFactors.length} criteria compared` : 'Insufficient comparable criteria',
-    matchTier: matchScore >= 75 ? 'Strong Match' : matchScore >= 50 ? 'Potential Match' : 'Needs Review',
+    matchTier: profileFactors.length < 2 ? 'Needs Review' : matchScore >= 75 ? 'Strong Match' : matchScore >= 50 ? 'Potential Match' : 'Needs Review',
     matchReasons,
     recommendationNote: 'Dataset-extracted eligibility information may be incomplete or unverified. Confirm requirements on the official scheme page.',
-    rankingScore: matchPoints * 10 + (categoryAffinity ? 5 : 0),
+    rankingScore: matchPoints * 10 + matchScore / 20
+      - Math.min(missingInformation.length, 10) * 1.5
+      + (categoryAffinity ? 1 : 0),
   };
 }
 
@@ -563,6 +638,7 @@ export function loadMyschemeSchemes() {
               details: item.details,
               benefitSummary: item.benefits,
               eligibility: item.eligibility_details?.eligibility_summary || item.eligibility,
+              applicationUrl: item.applicationUrl,
               applicationProcess: item.application,
               documentsRequired: item.documents,
               applicationMethod: item.application,

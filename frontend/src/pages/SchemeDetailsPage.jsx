@@ -1,17 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
-import { Calendar, Building2, Wallet, FileText, ArrowRight, CheckCircle2, ClipboardList, ExternalLink, XCircle, Loader2 } from 'lucide-react';
+import { Calendar, Building2, Wallet, FileText, ArrowRight, CheckCircle2, ClipboardList, XCircle, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { Tabs } from '@/components/ui/Tabs';
 import { VerificationBadge } from '@/components/shared/VerificationBadge';
+import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
+import { useApplicationTracking } from '@/contexts/ApplicationTrackingContext';
 import { MatchScore } from '@/components/shared/MatchScore';
 import { schemes } from '@/data/mockData';
 import { getAllSchemes, getDocumentsApi } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
-import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
 import { loadMyschemeSchemes } from '@/data/myschemeDataset';
 
 const schemeTranslationKeys = { 'pm-scholarship': 'pmScholarship', 'ayushman-bharat': 'ayushmanBharat', 'pm-kisan': 'pmKisan', 'pmay-housing': 'pmayHousing', 'atal-pension-yojana': 'atalPension', 'mudra-loan': 'mudraLoan', 'stand-up-india': 'standUpIndia', mgnrega: 'mgnrega', 'tata-skills': 'tataSkills' };
@@ -60,6 +61,7 @@ function documentMatches(required, uploaded) {
 export function SchemeDetailsPage() {
   const { id } = useParams();
   const location = useLocation();
+  const { handleSchemeDetailsBack } = useApplicationTracking();
   const { t, i18n } = useTranslation();
   const [schemeData, setScheme] = useState(() => schemes.find((item) => item.id === id));
   const scheme = schemeData && location.state?.recommendation
@@ -114,15 +116,19 @@ export function SchemeDetailsPage() {
     return () => { active = false; };
   }, [id]);
 
+  useEffect(() => {
+    if (location.hash !== '#application-process') return;
+    document.getElementById('application-process')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, [id, location.hash, schemeData]);
+
   if (loading) {
-    return <DashboardLayout backTo="/schemes"><p className="py-12 text-center text-gray-500">{t('eligibility.loading')}</p></DashboardLayout>;
+    return <DashboardLayout backTo="/my-schemes"><p className="py-12 text-center text-gray-500">{t('eligibility.loading')}</p></DashboardLayout>;
   }
   if (!scheme) {
-    return <DashboardLayout backTo="/schemes"><p className="py-12 text-center text-gray-500">{t('noSchemes')}</p></DashboardLayout>;
+    return <DashboardLayout backTo="/my-schemes"><p className="py-12 text-center text-gray-500">{t('noSchemes')}</p></DashboardLayout>;
   }
 
   const schemeId = scheme.schemeId || scheme.id;
-  const applicationUrl = getSchemeApplicationUrl(scheme);
   const translated = getSchemeTranslation(schemeId, i18n.language, scheme);
   const translateScheme = (value) => t(`schemeData.${value}`, { defaultValue: value || '' });
   const name = translated.name || t(`schemeNames.${schemeTranslationKeys[schemeId] || schemeId}`, { defaultValue: translateScheme(scheme.name) });
@@ -135,7 +141,7 @@ export function SchemeDetailsPage() {
   const requiredDocuments = getDocumentItems(scheme.documentsRequired);
 
   return (
-    <DashboardLayout backTo="/schemes">
+    <DashboardLayout backTo="/my-schemes" onBack={() => handleSchemeDetailsBack(scheme, '/my-schemes')}>
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-card">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
           <div className="flex-1">
@@ -160,7 +166,7 @@ export function SchemeDetailsPage() {
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           {!scheme.myschemeSlug && <Button to={`/schemes/${schemeId}/eligibility`} size="lg" className="flex-1">{t('scheme.checkEligibility')} <ArrowRight className="h-5 w-5" /></Button>}
-          {applicationUrl ? <Button href={applicationUrl} target="_blank" rel="noopener noreferrer" variant="outline" size="lg" className="flex-1">Apply on official website <ExternalLink className="h-4 w-4" /></Button> : <Button to="/schemes" variant="outline" size="lg" className="flex-1">Official application link unavailable</Button>}
+          <SchemeApplicationAction scheme={scheme} applyLabel="Apply on original website" unavailableLabel="Original application link unavailable" variant="outline" size="lg" className="flex-1" />
         </div>
       </div>
 
@@ -216,7 +222,7 @@ export function SchemeDetailsPage() {
               </Card>
             )}
             {applicationSteps.length > 0 && (
-              <Card className="p-6">
+              <Card id="application-process" className="scroll-mt-8 p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary-600" />
                   <h2 className="text-lg font-bold text-navy-900">How to apply</h2>

@@ -92,6 +92,12 @@ const citizenSchema = new mongoose.Schema(
       type: Number,
       min: 0,
     },
+    activeApplicationCount: {
+      type: Number,
+      min: 0,
+      max: 2,
+      default: 0,
+    },
   },
   {
     timestamps: true,
