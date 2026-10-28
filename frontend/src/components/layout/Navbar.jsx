@@ -31,7 +31,7 @@ export function Navbar() {
     navigate('/');
   };
 
-  const supportedLanguages = ['English', 'हिंदी', 'தமிழ்'];
+  const supportedLanguages = ['English', 'हिंदी', 'தமிழ்', 'मराठी', 'తెలుగు', 'বাংলা', 'ગુજરાતી', 'ಕನ್ನಡ'];
   const navLinks = [
     { label: "mySchemes", to: "/my-schemes" },
     { label: "findSchemes", to: "/schemes" },
@@ -50,7 +50,7 @@ export function Navbar() {
           <div>
             <span className="text-lg font-bold text-navy-900">WelfareAI</span>
             <span className="ml-1.5 hidden text-xs font-semibold text-sky-700 sm:inline">
-              Discover. Understand. Apply. Track.
+              {t('navTagline')}
             </span>
           </div>
         </Link>

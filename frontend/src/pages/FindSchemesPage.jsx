@@ -12,7 +12,9 @@ import { categories as mockCategories, states, occupations, incomeBrackets, sche
 import { useTranslation } from 'react-i18next';
 import { getAllSchemes, getMe, saveSchemeRecommendations } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
-import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
+import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
+import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
+import { SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
 
 const allCategoriesList = [
@@ -447,7 +449,6 @@ export function FindSchemesPage() {
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {recommendedSchemes.map((scheme) => {
                   const sid = scheme.schemeId || scheme.id;
-                  const applicationUrl = getSchemeApplicationUrl(scheme);
                   const scoreStyle = scheme.matchScore >= 75
                     ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
                     : 'bg-amber-50 border-amber-300 text-amber-700';
@@ -472,7 +473,8 @@ export function FindSchemesPage() {
                         </div>
 
                         {/* Title & Provider */}
-                        <Link
+                        <SchemeDetailsLink
+                          scheme={scheme}
                           to={`/schemes/${sid}`}
                           state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }}
                           className="group block mb-1"
@@ -480,7 +482,7 @@ export function FindSchemesPage() {
                           <h3 className="text-lg font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors">
                             {scheme.name}
                           </h3>
-                        </Link>
+                        </SchemeDetailsLink>
                         <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
 
                         {/* Key Benefit Highlight Box */}
@@ -499,12 +501,10 @@ export function FindSchemesPage() {
 
                       {/* Action Buttons */}
                       <div className="flex gap-2 pt-2 border-t border-gray-100">
-                        <Button to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
+                        <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
                           View Details
-                        </Button>
-                        <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
-                          {applicationUrl ? 'Apply Now' : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
-                        </Button>
+                        </SchemeDetailsButton>
+                        <SchemeApplicationAction scheme={scheme} variant="primary" size="sm" className="flex-1 justify-center gap-1" />
                       </div>
                     </div>
                   );

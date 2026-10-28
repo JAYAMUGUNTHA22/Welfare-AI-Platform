@@ -111,6 +111,32 @@ export function getAllSchemes() {
   return request('/schemes');
 }
 
+export function getMyApplicationsApi() {
+  return request('/applications');
+}
+
+export function startApplicationApi(scheme) {
+  return request('/applications/start', {
+    method: 'POST',
+    body: JSON.stringify(scheme),
+  });
+}
+
+export function reserveOfflineApplicationApi(scheme) {
+  return request('/applications/offline', {
+    method: 'POST',
+    body: JSON.stringify(scheme),
+  });
+}
+
+export function confirmApplicationApi(id) {
+  return request(`/applications/${id}/confirm`, { method: 'POST' });
+}
+
+export function cancelPendingApplicationApi(id) {
+  return request(`/applications/${id}/cancel`, { method: 'POST' });
+}
+
 // ── Documents ─────────────────────────────────────────────────────────────────
 export function getDocumentsApi() {
   return request('/documents');

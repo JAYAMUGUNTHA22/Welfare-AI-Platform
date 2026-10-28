@@ -1,61 +1,47 @@
-import { Clock } from 'lucide-react';
-import { StatusBadge } from './StatusBadge';
-import { ProgressBar } from '@/components/ui/ProgressBar';
+import { ArrowUpRight, Banknote, Building2, CheckCircle2, ExternalLink, FileText } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
+import { getListedBenefitAmounts } from '@/utils/benefitAmounts';
 import { useTranslation } from 'react-i18next';
-
-export function formatCurrency(amount) {
-  return '₹' + amount.toLocaleString('en-IN');
-}
 
 export function BenefitCard({ benefit }) {
   const { t } = useTranslation();
-  const remaining = benefit.expectedAmount - benefit.receivedAmount;
-  const pct = benefit.expectedAmount > 0 ? (benefit.receivedAmount / benefit.expectedAmount) * 100 : 0;
-  const installments = Array.isArray(benefit.installments) ? benefit.installments : [];
+  const description = typeof benefit.benefitSummary === 'string' ? benefit.benefitSummary.trim() : '';
+  const listedAmounts = getListedBenefitAmounts(description).slice(0, 4);
 
   return (
-    <div className="benefit-rich-card rounded-2xl border border-sky-100 bg-white p-5 shadow-card transition-all hover:shadow-card-hover">
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <h3 className="text-base font-bold text-navy-900">{t(`schemeData.${benefit.schemeName}`, { defaultValue: benefit.schemeName })}</h3>
-          <p className="mt-1 text-xs text-gray-500">{t('expected')} {t('by_prefix')} {t(benefit.expectedDate.toLowerCase().replace(/\s+/g, ''), { defaultValue: benefit.expectedDate })}</p>
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-sky-200 hover:shadow-xl">
+      <div className="h-1.5 bg-gradient-to-r from-cyan-400 via-sky-500 to-indigo-500" />
+      <div className="flex flex-1 flex-col p-5 sm:p-6">
+        <div className="flex items-start justify-between gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-700 ring-1 ring-sky-200/70"><Banknote className="h-6 w-6" /></span>
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800"><CheckCircle2 className="h-3.5 w-3.5" /> Applied</span>
         </div>
-        <StatusBadge status={benefit.status} />
+        <h3 className="mt-5 text-lg font-extrabold leading-snug text-slate-900">{t(`schemeData.${benefit.schemeName}`, { defaultValue: benefit.schemeName })}</h3>
+        <p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><Building2 className="h-4 w-4 shrink-0 text-slate-400" />{benefit.provider || 'Government Scheme'}</p>
+
+        <div className="mt-5 rounded-2xl border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 p-4">
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-emerald-800">Benefited amount · scheme details</p>
+          {listedAmounts.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-2">
+              {listedAmounts.map((amount) => <span key={amount} className="rounded-xl bg-white px-3 py-1.5 text-lg font-extrabold text-emerald-900 shadow-sm ring-1 ring-emerald-100">{amount}</span>)}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm font-semibold text-slate-700">No specific cash amount listed</p>
+          )}
+          <p className="mt-2 text-xs leading-relaxed text-emerald-900/80">Amount listed by the scheme. The final approved benefit depends on the department’s decision.</p>
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50/70 p-5">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-sky-800"><FileText className="h-4 w-4" /> Benefit in scheme details</p>
+          <p className="mt-3 whitespace-pre-line text-sm font-medium leading-relaxed text-slate-800">{description || 'No benefit amount or description is listed in the available scheme details.'}</p>
+        </div>
+
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 mt-5">
+          <p className="max-w-[65%] text-xs leading-relaxed text-slate-500">The benefit shown is taken from the scheme catalogue. Final approval and amount are decided by the department.</p>
+          {benefit.applicationUrl && <a href={benefit.applicationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-sky-700 hover:text-sky-900">Scheme site <ExternalLink className="h-3.5 w-3.5" /></a>}
+          {!benefit.applicationUrl && <Button to={`/schemes/${encodeURIComponent(benefit.schemeId)}`} variant="outline" size="sm">Details <ArrowUpRight className="h-4 w-4" /></Button>}
+        </div>
       </div>
-
-      <div className="mt-4 grid grid-cols-3 gap-3">
-        <div className="rounded-xl bg-gray-50 p-3">
-          <p className="text-xs text-gray-500">{t('expected')}</p>
-          <p className="mt-1 text-sm font-bold text-navy-800">{formatCurrency(benefit.expectedAmount)}</p>
-        </div>
-        <div className="rounded-xl bg-success-50 p-3">
-          <p className="text-xs text-success-600">{t('received')}</p>
-          <p className="mt-1 text-sm font-bold text-success-700">{formatCurrency(benefit.receivedAmount)}</p>
-        </div>
-        <div className="rounded-xl bg-warning-50 p-3">
-          <p className="text-xs text-warning-600">{t('remaining')}</p>
-          <p className="mt-1 text-sm font-bold text-warning-700">{formatCurrency(remaining)}</p>
-        </div>
-      </div>
-
-      <div className="mt-4"><ProgressBar value={pct} size="sm" barClassName="bg-success-500" /></div>
-
-      {installments.length > 0 && (
-        <div className="mt-4 border-t border-gray-100 pt-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">{t('installments')}</p>
-          <div className="space-y-2">
-            {installments.map((inst, i) => (
-              <div key={i} className="flex items-center justify-between text-sm">
-                <span className="flex items-center gap-2 text-navy-600"><Clock className="h-3.5 w-3.5 text-gray-400" />{inst.date}</span>
-                <span className="flex items-center gap-2">
-                  <span className="font-semibold text-navy-800">{formatCurrency(inst.amount)}</span>
-                  <StatusBadge status={inst.status === 'received' ? 'received' : 'pending'} />
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
+    </article>
   );
 }

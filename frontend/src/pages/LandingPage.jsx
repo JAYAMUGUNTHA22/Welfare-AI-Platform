@@ -50,17 +50,17 @@ export function LandingPage() {
           <div className="grid w-full items-center gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] xl:gap-10">
             <div className="landing-hero-copy text-left">
               <h1 className="landing-hero-title landing-hero-title-gradient font-extrabold tracking-tight">
-                AI-Powered Social<br />Welfare Scheme Eligibility<br />Decision Support and<br />Benefit Tracking System
+                {t('heroTitle')}
               </h1>
               <p className="landing-hero-description mt-6 max-w-2xl text-slate-600">
-                Discover government schemes tailored for you with an integrated AI platform that understands your unique needs and circumstances.
+                {t('heroDesc')}
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <Button onClick={() => document.getElementById('eligibility-checker')?.scrollIntoView({ behavior: 'smooth' })} size="lg" className="landing-hero-button landing-primary-button w-full rounded-xl sm:w-auto">
-                  Check Eligibility <ArrowRight className="h-5 w-5" />
+                  {t('checkEligibilityBtn')} <ArrowRight className="h-5 w-5" />
                 </Button>
                 <Button to="/schemes" variant="outline" size="lg" className="landing-hero-button landing-outline-button w-full rounded-xl sm:w-auto">
-                  Explore Schemes <Sparkles className="h-4 w-4 text-amber-500" />
+                  {t('exploreSchemes')} <Sparkles className="h-4 w-4 text-amber-500" />
                 </Button>
               </div>
               <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
@@ -142,7 +142,7 @@ export function LandingPage() {
       <section id="categories" className="landing-categories-section py-16 lg:py-20">
         <div className="container-page">
           <div className="mb-10 text-center">
-            <span className="mb-3 inline-flex rounded-full border border-sky-200 bg-white px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-sky-700">Explore by area</span>
+            <span className="mb-3 inline-flex rounded-full border border-sky-200 bg-white px-3.5 py-1 text-xs font-bold uppercase tracking-wider text-sky-700">{t('exploreByArea')}</span>
             <h2 className="text-3xl font-extrabold text-sky-950 sm:text-4xl">{t('exploreCategories')}</h2>
             <p className="mt-2 text-base text-slate-600">{t('categoriesSub')}</p>
           </div>

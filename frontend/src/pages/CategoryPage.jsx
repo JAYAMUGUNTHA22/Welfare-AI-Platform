@@ -11,7 +11,9 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { myschemeCategories } from '@/data/myschemeCategories';
 import { loadMyschemeSchemes } from '@/data/myschemeDataset';
-import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
+import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
+import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
+import { SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 
 const iconMap = {
   education: GraduationCap, women: Heart, children: Baby, 'senior-citizens': Users,
@@ -258,7 +260,6 @@ export function CategoryPage() {
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {pagedSchemes.map(scheme => {
-                const applicationUrl = getSchemeApplicationUrl(scheme);
                 return (
                 <Card
                   key={scheme.id}
@@ -275,11 +276,11 @@ export function CategoryPage() {
                   </div>
 
                   {/* Scheme name */}
-                  <Link to={`/schemes/${scheme.schemeId || scheme.id}`} className="group block mb-1">
+                  <SchemeDetailsLink scheme={scheme} to={`/schemes/${scheme.schemeId || scheme.id}`} className="group block mb-1">
                     <h3 className="text-base font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors leading-snug">
                       {scheme.name}
                     </h3>
-                  </Link>
+                  </SchemeDetailsLink>
                   <p className="text-2xs font-semibold text-gray-400 mb-3">{scheme.provider}</p>
 
                   <div className="mb-3 flex flex-wrap gap-1.5">
@@ -309,12 +310,10 @@ export function CategoryPage() {
 
                   {/* Action */}
                   <div className="flex gap-2 pt-2 border-t border-gray-100 mt-auto">
-                    <Button to={`/schemes/${scheme.schemeId || scheme.id}`} variant="outline" size="sm" className="flex-1 justify-center text-xs">
+                    <SchemeDetailsButton scheme={scheme} to={`/schemes/${scheme.schemeId || scheme.id}`} variant="outline" size="sm" className="flex-1 justify-center text-xs">
                       Details
-                    </Button>
-                    <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1 text-xs shadow-xs">
-                      {applicationUrl ? 'Apply' : 'Apply link unavailable'} <ArrowRight className="h-3.5 w-3.5" />
-                    </Button>
+                    </SchemeDetailsButton>
+                    <SchemeApplicationAction scheme={scheme} applyLabel="Apply" variant="primary" size="sm" className="flex-1 justify-center gap-1 text-xs shadow-xs" />
                   </div>
                 </Card>
                 );

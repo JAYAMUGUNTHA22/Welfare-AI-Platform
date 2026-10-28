@@ -1,18 +1,52 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+
 import {
-  Sparkles, Search, SlidersHorizontal, CheckCircle2, AlertCircle,
-  ArrowRight, User, Calendar, MapPin, Briefcase, Wallet, Clock,
-  RefreshCw, ShieldCheck, Filter, ChevronDown, Award, TrendingUp, X, Heart, GraduationCap, Wheat
+  Sparkles,
+  Search,
+  SlidersHorizontal,
+  CheckCircle2,
+  AlertCircle,
+  ArrowRight,
+  User,
+  Calendar,
+  MapPin,
+  Briefcase,
+  Wallet,
+  Clock,
+  RefreshCw,
+  ShieldCheck,
+  Filter,
+  ChevronDown,
+  Award,
+  TrendingUp,
+  X,
+  Heart,
+  GraduationCap,
+  Wheat,
 } from 'lucide-react';
+
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getFarmerRecommendationsApi, getMe, getSavedSchemeRecommendationsApi, saveSchemeRecommendations } from '@/services/api';
-import { applications } from '@/data/mockData';
+
+import {
+  getFarmerRecommendationsApi,
+  getMe,
+  getSavedSchemeRecommendationsApi,
+  saveSchemeRecommendations,
+} from '@/services/api';
+
 import { useTranslation } from 'react-i18next';
-import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
-import { getPersonalizedSchemeRecommendations, loadMyschemeSchemes } from '@/data/myschemeDataset';
+
+import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
+import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
+import { SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
+
+import {
+  getPersonalizedSchemeRecommendations,
+  loadMyschemeSchemes,
+} from '@/data/myschemeDataset';
 
 const visibleCategories = [
   { id: 'agriculture-rural-environment', label: 'Agriculture', description: 'Support for farmers and rural communities', icon: Wheat },
@@ -26,7 +60,6 @@ const visibleCategories = [
 
 export function MySchemesPage() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
 
   const [user, setUser] = useState(null);
   const [recommendedSchemes, setRecommendedSchemes] = useState([]);
@@ -216,8 +249,10 @@ export function MySchemesPage() {
   const schemesToDisplay = isShowingCategory ? categorySearchResults : filteredSchemes;
 
   // Calculated Stats
-  const highlyRelevantCount = recommendedSchemes.filter(s => s.matchScore >= 90).length;
-  const strongMatchesCount = recommendedSchemes.filter(s => s.matchScore >= 50 && s.matchScore < 90).length;
+  const highlyRelevantCount = recommendedSchemes.filter(s => s.matchTier === 'Strong Match' && s.matchScore >= 90).length;
+  const strongMatchesCount = recommendedSchemes.filter(s => (
+    s.matchTier === 'Potential Match' || (s.matchTier === 'Strong Match' && s.matchScore < 90)
+  )).length;
   const approachingDeadlineCount = recommendedSchemes.filter(s => s.deadline && s.deadline !== '—' && !s.deadline.includes('Open')).length;
   const hasProfileData = Boolean(
     user?.state || user?.age || user?.gender || user?.occupation || user?.income
@@ -227,7 +262,6 @@ export function MySchemesPage() {
     || user?.annualIncomeINR != null || user?.familySize != null || user?.dependants != null || user?.socialCategory
   );
 
-  const categoriesList = visibleCategories;
   const matchTiersList = ['All', 'Strong Match', 'Potential Match', 'Needs Review'];
 
   return (
@@ -341,35 +375,7 @@ export function MySchemesPage() {
         </div>
       )}
 
-      <section className="mb-7">
-        <div className="mb-4 flex items-end justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-bold text-slate-800">Category</h2>
-            <p className="mt-1 text-sm text-slate-500">Browse schemes by the areas that matter to you.</p>
-          </div>
-          {selectedCategory !== 'All' && <button onClick={() => { setSelectedCategory('All'); setSelectedMatchTier('All'); setSearchQuery(''); }} className="text-sm font-semibold text-sky-700 hover:text-sky-800">Show all</button>}
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {categoriesList.map(({ id, label, description, icon: Icon }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => navigate(`/category/${id}`)}
-              aria-label={`Browse ${label} schemes`}
-              className={`myschemes-category-card group rounded-2xl border bg-white p-5 text-left transition-all ${selectedCategory === id ? 'border-sky-400 ring-2 ring-sky-100' : 'border-slate-100'}`}
-            >
-              <span className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-cyan-50 text-sky-600 transition-colors group-hover:from-sky-500 group-hover:to-blue-600 group-hover:text-white">
-                <Icon className="h-6 w-6" />
-              </span>
-              <span className="block font-bold text-slate-800">{label}</span>
-              <span className="mt-1 block min-h-10 text-xs leading-relaxed text-slate-500">{description}</span>
-              <span className="mt-3 block text-xs font-semibold text-sky-700">Explore category <ArrowRight className="ml-1 inline h-3.5 w-3.5" /></span>
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* SECTION 3: Search & Filters Toolbar */}
+      {/* Search & Filters Toolbar */}
       <div className="mb-6 rounded-2xl border border-gray-200 bg-white p-4 shadow-xs">
         <div className="flex flex-col gap-3 md:flex-row md:items-center justify-between">
           {/* Search Box */}
@@ -514,7 +520,6 @@ export function MySchemesPage() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {schemesToDisplay.map((scheme) => {
             const sid = scheme.schemeId || scheme.id;
-            const applicationUrl = getSchemeApplicationUrl(scheme);
             if (isShowingCategory) {
               const categoryLabel = visibleCategories.find(({ id }) => id === selectedCategory)?.label || 'Welfare';
               return (
@@ -524,9 +529,9 @@ export function MySchemesPage() {
                       <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-2xs font-black uppercase text-sky-700">{categoryLabel}</span>
                       {scheme.level && <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-2xs font-semibold text-cyan-800">{scheme.level} scheme</span>}
                     </div>
-                    <Link to={`/schemes/${sid}`} className="group block mb-1">
+                    <SchemeDetailsLink scheme={scheme} to={`/schemes/${sid}`} className="group block mb-1">
                       <h3 className="text-lg font-extrabold text-slate-800 transition-colors group-hover:text-sky-700">{scheme.name}</h3>
-                    </Link>
+                    </SchemeDetailsLink>
                     <p className="mb-4 text-xs font-medium text-slate-500">{scheme.provider}</p>
                     <div className="mb-3 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
                       <p className="mb-1 text-2xs font-black uppercase tracking-wider text-sky-700">Benefit</p>
@@ -541,10 +546,8 @@ export function MySchemesPage() {
                     {scheme.details && <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-slate-500">{scheme.details}</p>}
                   </div>
                   <div className="mt-auto flex gap-2 border-t border-slate-100 pt-3">
-                    <Button to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">View Details</Button>
-                    <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
-                      {applicationUrl ? 'Apply Now' : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
-                    </Button>
+                    <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">View Details</SchemeDetailsButton>
+                    <SchemeApplicationAction scheme={scheme} variant="primary" size="sm" className="flex-1 justify-center gap-1" />
                   </div>
                 </Card>
               );
@@ -564,10 +567,6 @@ export function MySchemesPage() {
               ? `Private Sector · ${scheme.providerType || 'NGO/Foundation'}`
               : scheme.providerType || (scheme.sourceType === 'central' ? 'Central Government' : 'State Government');
 
-            // Check if user has applied
-            const app = applications.find(a => a.schemeId === sid || a.schemeName === scheme.name);
-            const appStatus = app ? app.status : null;
-
             return (
               <Card
                 key={sid}
@@ -586,7 +585,8 @@ export function MySchemesPage() {
                   </div>
 
                   {/* Title & Department */}
-                  <Link
+                  <SchemeDetailsLink
+                    scheme={scheme}
                     to={`/schemes/${sid}`}
                     state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }}
                     className="group block mb-1"
@@ -594,7 +594,7 @@ export function MySchemesPage() {
                     <h3 className="text-lg font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors">
                       {scheme.name}
                     </h3>
-                  </Link>
+                  </SchemeDetailsLink>
                   <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
                   {providerTypeLabel && (
                     <span className="mb-3 inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">{providerTypeLabel}</span>
@@ -634,25 +634,22 @@ export function MySchemesPage() {
                     </a>
                   )}
 
-                  {/* Application Status Badge if exists */}
-                  {appStatus && (
-                    <div className="mb-3 flex items-center justify-between rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs text-emerald-800 font-bold">
-                      <span>Status:</span>
-                      <span className="capitalize">{appStatus}</span>
-                    </div>
-                  )}
-
                   {/* Deadline Info */}
                 </div>
 
                 {/* Card Action Buttons */}
                 <div className="flex gap-2 pt-3 border-t border-gray-100 mt-auto">
-                  <Button to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
+                  <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
                     View Details
-                  </Button>
-                  <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
-                    {applicationUrl ? (scheme.recommendationGroup === 'private' ? 'Provider Website' : scheme.officialWebsite ? 'Official Website' : 'Apply Now') : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
-                  </Button>
+
+                  </SchemeDetailsButton>
+                  <SchemeApplicationAction
+                    scheme={scheme}
+                    variant="primary"
+                    size="sm"
+                    className="flex-1 justify-center gap-1"
+                  />
+
                 </div>
               </Card>
             );

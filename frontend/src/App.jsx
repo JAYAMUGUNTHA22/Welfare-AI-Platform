@@ -17,10 +17,12 @@ import { AdminPage } from '@/pages/AdminPage';
 import { FeedbackPage } from '@/pages/FeedbackPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { CategoryPage } from '@/pages/CategoryPage';
+import { ApplicationTrackingProvider } from '@/contexts/ApplicationTrackingContext';
 
 function App() {
   return (
     <BrowserRouter>
+      <ApplicationTrackingProvider>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/my-schemes" element={<MySchemesPage />} />
@@ -41,6 +43,7 @@ function App() {
         <Route path="/feedback" element={<FeedbackPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Routes>
+      </ApplicationTrackingProvider>
     </BrowserRouter>
   );
 }

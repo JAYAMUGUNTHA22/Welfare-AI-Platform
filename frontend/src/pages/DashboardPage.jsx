@@ -88,10 +88,30 @@ export function DashboardPage() {
       ? t('dashboard.greeting.afternoon')
       : t('dashboard.greeting.evening');
 
-  const recommendationSections = [
-    { key: 'state', title: `${user?.state || 'State'} Government Recommendations`, schemes: schemes.filter((scheme) => scheme.sourceType === 'state').slice(0, 4) },
-    { key: 'central', title: 'Central Government Recommendations', schemes: schemes.filter((scheme) => scheme.sourceType === 'central').slice(0, 4) },
-    { key: 'private', title: 'Private-Sector and Foundation Recommendations', schemes: schemes.filter((scheme) => scheme.sourceType === 'private') },
+   const recommendationSections = [
+    {
+      key: 'state',
+      title: `${user?.state || t('state', { defaultValue: 'State' })} ${t('stateGovRec', { defaultValue: 'Government Recommendations' })}`,
+      schemes: schemes
+        .filter((scheme) => scheme.sourceType === 'state')
+        .slice(0, 4),
+    },
+    {
+      key: 'central',
+      title: t('centralGovRec', {
+        defaultValue: 'Central Government Recommendations',
+      }),
+      schemes: schemes
+        .filter((scheme) => scheme.sourceType === 'central')
+        .slice(0, 4),
+    },
+    {
+      key: 'private',
+      title: t('privateAssist', {
+        defaultValue: 'Private-Sector and Foundation Recommendations',
+      }),
+      schemes: schemes.filter((scheme) => scheme.sourceType === 'private'),
+    },
   ];
   const visibleRecommendationCount = recommendationSections.reduce((count, section) => count + section.schemes.length, 0);
 
@@ -99,10 +119,10 @@ export function DashboardPage() {
     <DashboardLayout>
       <div className="dashboard-welcome mb-7">
         <h1 className="flex items-center gap-2 text-3xl font-extrabold text-sky-600 lg:text-4xl">
-          {t('dashboard.welcomeBack')}, {user?.fullName?.split(' ')[0] || 'Citizen'}
+          {t('dashboard.welcomeBack')}, {user?.fullName?.split(' ')[0] || t('citizen')}
           <SparkleOutline className="h-6 w-6 text-sky-400" />
         </h1>
-        <p className="mt-1 text-sm font-medium text-slate-600">{greeting} · Welcome to your dashboard</p>
+        <p className="mt-1 text-sm font-medium text-slate-600">{greeting} · {t('welcomeDashboard')}</p>
         <div className="mt-3 h-1 w-28 rounded-full bg-sky-500" />
       </div>
 
@@ -138,9 +158,9 @@ export function DashboardPage() {
       <div className="mt-8 space-y-8">
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">Recommendations for your profile</h2>
+            <h2 className="text-xl font-bold text-slate-800">{t('recommendationsTitle')}</h2>
             <p className="mt-0.5 text-sm text-gray-500">
-              Potential matches based on the profile and eligibility details available in the scheme catalogue. A match does not guarantee approval.
+              {t('recommendationsDesc')}
             </p>
           </div>
           <Link
@@ -154,7 +174,7 @@ export function DashboardPage() {
           <section key={section.key}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <h3 className="text-lg font-bold text-slate-800">{section.title}</h3>
-              <Link to="/my-schemes" className="text-sm font-semibold text-primary-700 hover:text-primary-800">Browse all</Link>
+              <Link to="/my-schemes" className="text-sm font-semibold text-primary-700 hover:text-primary-800">{t('browseAll')}</Link>
             </div>
             {section.schemes.length ? (
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
@@ -177,8 +197,8 @@ export function DashboardPage() {
             ) : (
               <p className="dashboard-empty-card rounded-2xl border bg-white p-4 text-sm text-slate-600">
                 {section.key === 'private'
-                  ? 'No verified private or corporate assistance records are available in the current catalogue.'
-                  : `No ${section.key === 'state' ? (user?.state || 'state') + ' ' : ''}government schemes matched the available profile details.`}
+                  ? t('noPrivateSchemes')
+                  : t('noStateSchemes')}
               </p>
             )}
           </section>
@@ -190,7 +210,7 @@ export function DashboardPage() {
         <Card className="dashboard-floating-card overflow-hidden p-0">
           <div className="dashboard-panel-heading flex items-center gap-3 px-6 py-5">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-sky-500 text-white shadow-lg"><Clock className="h-6 w-6" /></div>
-            <div><h3 className="text-lg font-bold text-sky-600">Application Status</h3><p className="text-sm text-slate-500">Track your application progress</p></div>
+            <div><h3 className="text-lg font-bold text-sky-600">{t('applicationStatusTitle')}</h3><p className="text-sm text-slate-500">{t('trackProgress')}</p></div>
           </div>
         </Card>
       </div>
