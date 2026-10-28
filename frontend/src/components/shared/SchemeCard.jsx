@@ -50,7 +50,9 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
           <p className="mt-1 text-sm text-gray-500">{translated.provider || getSchemeCatalogText(scheme.provider, i18n.language)}</p>
           {scheme.verification && <div className="mt-2"><VerificationBadge status={scheme.verification} /></div>}
         </div>
-        <MatchScore score={scheme.matchScore} size="md" scoreLabel={scheme.matchScoreLabel} />
+        {Number.isFinite(Number(scheme.matchScore)) && scheme.matchScore !== '' && (
+          <MatchScore score={Number(scheme.matchScore)} size="md" scoreLabel={scheme.matchScoreLabel} />
+        )}
       </div>
 
       <p className="line-clamp-3 text-sm text-navy-600">{translated.benefit || getSchemeCatalogText(scheme.benefitSummary, i18n.language)}</p>

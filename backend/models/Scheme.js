@@ -24,6 +24,15 @@ const schemeSchema = new mongoose.Schema(
     benefits: [{ type: String }],
     documentsRequired: [{ type: String }],
     applicationProcess: [{ type: String }],
+    officialWebsite: { type: String, trim: true },
+    targetBeneficiaries: [{ type: String }],
+    supportedLocations: [{ type: String }],
+    supportedCrops: [{ type: String }],
+    activeStatus: { type: String, enum: ['active', 'inactive', 'unconfirmed'], default: 'unconfirmed' },
+    eligibilityStatus: { type: String },
+    missingInformation: [{ type: String }],
+    recommendationGroup: { type: String, enum: ['state', 'central', 'private', 'other'] },
+    supportMetadata: { type: mongoose.Schema.Types.Mixed },
     // We can embed dataset rules manually or just simple ones
     rules: [
       {

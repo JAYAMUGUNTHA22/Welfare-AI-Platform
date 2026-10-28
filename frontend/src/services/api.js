@@ -91,6 +91,9 @@ export function getDashboardData() {
 export function getRecommendedSchemes() {
   return request('/schemes/recommend');
 }
+export function getFarmerRecommendationsApi() {
+  return request('/schemes/recommend/farmer');
+}
 export function saveSchemeRecommendations(profile, schemes) {
   if (!localStorage.getItem('token')) return Promise.resolve(null);
   return request('/schemes/recommendations', {
@@ -100,6 +103,9 @@ export function saveSchemeRecommendations(profile, schemes) {
     console.warn('Could not save recommendation snapshot', error);
     return null;
   });
+}
+export function getSavedSchemeRecommendationsApi() {
+  return request('/schemes/recommendations');
 }
 export function getAllSchemes() {
   return request('/schemes');

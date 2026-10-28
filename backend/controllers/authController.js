@@ -80,6 +80,11 @@ export const register = async (req, res) => {
         isFarmer: citizen.isFarmer,
         firstGraduate: citizen.firstGraduate,
         specialCircumstances: citizen.specialCircumstances,
+        district: citizen.district,
+        landholdingAcres: citizen.landholdingAcres,
+        landOwnership: citizen.landOwnership,
+        cropTypes: citizen.cropTypes,
+        farmingActivities: citizen.farmingActivities,
       },
     });
   } catch (error) {
@@ -123,6 +128,11 @@ export const login = async (req, res) => {
         isFarmer: citizen.isFarmer,
         firstGraduate: citizen.firstGraduate,
         specialCircumstances: citizen.specialCircumstances,
+        district: citizen.district,
+        landholdingAcres: citizen.landholdingAcres,
+        landOwnership: citizen.landOwnership,
+        cropTypes: citizen.cropTypes,
+        farmingActivities: citizen.farmingActivities,
       },
     });
   } catch (error) {

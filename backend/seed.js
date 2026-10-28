@@ -6,6 +6,8 @@ import mongoose from 'mongoose';
 import { Scheme } from './models/Scheme.js';
 import { SchemeEligibility } from './models/SchemeEligibility.js';
 import { connectDB } from './config/db.js';
+import { seedFarmerSupportSchemes } from './services/farmerSupportSeeder.js';
+import { farmerSchemeAliases, farmerSupportSchemes, normalizeSchemeName } from './data/farmerSupportSchemes.js';
 
 const backendDir = path.dirname(fileURLToPath(import.meta.url));
 const projectDir = path.resolve(backendDir, '..');
@@ -51,7 +53,20 @@ async function importSchemes() {
         applicationMethod: typeof item.application === 'string' ? item.application : asList(item.application).join('\n'),
         sourceData: item,
       };
-      return { updateOne: { filter: { schemeId }, update: { $set: update }, upsert: true } };
+      const matchingFarmerScheme = farmerSupportSchemes.find((farmerScheme) => (
+        [farmerScheme.name, ...(farmerSchemeAliases[farmerScheme.schemeId] || [])]
+          .some((name) => normalizeSchemeName(name) === normalizeSchemeName(item.scheme_name))
+      ));
+      const farmerAliases = matchingFarmerScheme
+        ? [matchingFarmerScheme.name, ...(farmerSchemeAliases[matchingFarmerScheme.schemeId] || [])]
+        : [];
+      return {
+        updateOne: {
+          filter: { $or: [{ schemeId }, { name: item.scheme_name }, ...farmerAliases.map((name) => ({ name }))] },
+          update: { $setOnInsert: update },
+          upsert: true,
+        },
+      };
     });
 
   for (let offset = 0; offset < operations.length; offset += 500) {
@@ -84,6 +99,8 @@ async function importEligibilityIfEmpty() {
 try {
   await connectDB();
   await importSchemes();
+  const farmerSupportSummary = await seedFarmerSupportSchemes(Scheme);
+  console.log(`Farmer-support seed complete: ${farmerSupportSummary.inserted} inserted, ${farmerSupportSummary.enriched} existing records safely enriched, ${farmerSupportSummary.unchanged} unchanged.`);
   await importEligibilityIfEmpty();
   console.log('MongoDB seed complete.');
 } catch (error) {
