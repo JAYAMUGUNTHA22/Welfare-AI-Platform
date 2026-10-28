@@ -15,6 +15,7 @@ import { getAllSchemes, getDocumentsApi } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
 import { getSchemeCatalogText, getSchemeCategoryLabel } from '@/utils/schemeCatalogTranslations';
 import { loadMyschemeSchemes } from '@/data/myschemeDataset';
+import { translateEligibilityReason } from '@/utils/eligibilityReasonTranslations';
 
 const schemeTranslationKeys = { 'pm-scholarship': 'pmScholarship', 'ayushman-bharat': 'ayushmanBharat', 'pm-kisan': 'pmKisan', 'pmay-housing': 'pmayHousing', 'atal-pension-yojana': 'atalPension', 'mudra-loan': 'mudraLoan', 'stand-up-india': 'standUpIndia', mgnrega: 'mgnrega', 'tata-skills': 'tataSkills' };
 
@@ -187,7 +188,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.about', { defaultValue: 'About this scheme' })}</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('aboutScheme', { defaultValue: 'About this scheme' })}</h2>
                 </div>
                 <p className="whitespace-pre-line text-base leading-relaxed text-slate-900">{summary}</p>
               </Card>
@@ -196,7 +197,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.benefits', { defaultValue: 'Benefits' })}</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('benefitsTitle', { defaultValue: 'Benefits' })}</h2>
                 </div>
                 <ul className="space-y-3">
                   {benefits.map((benefit, index) => (
@@ -212,7 +213,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <CheckCircle2 className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.eligibility', { defaultValue: 'Eligibility requirements' })}</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('eligibilityReqs', { defaultValue: 'Eligibility requirements' })}</h2>
                 </div>
                 <ul className="space-y-3">
                   {criteria.map((criterion, index) => (
@@ -224,7 +225,7 @@ export function SchemeDetailsPage() {
                 </ul>
                 {scheme.eligibilityCriteria?.some((criterion) => criterion.verification_status === 'needs_official_verification') && (
                   <p className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
-                    Eligibility information is extracted from the MyScheme dataset and may need verification. Confirm the current requirements on the official website before applying.
+                    {t('eligibilityVerifyNote', { defaultValue: 'Eligibility information is extracted from the MyScheme dataset and may need verification. Confirm the current requirements on the official website before applying.' })}
                   </p>
                 )}
               </Card>
@@ -233,7 +234,7 @@ export function SchemeDetailsPage() {
               <Card id="application-process" className="scroll-mt-8 p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.howToApply', { defaultValue: 'How to apply' })}</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('howToApply', { defaultValue: 'How to apply' })}</h2>
                 </div>
                 <ol className="space-y-3">
                   {applicationSteps.map((step, index) => (
@@ -249,9 +250,9 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-5 flex items-center gap-4 rounded-2xl bg-sky-100 px-5 py-4">
                   <FileText className="h-9 w-9 shrink-0 text-blue-800" />
-                  <h2 className="text-2xl font-extrabold text-blue-900">{t('scheme.requiredDocuments', { defaultValue: 'Required Documents' })}</h2>
+                  <h2 className="text-2xl font-extrabold text-blue-900">{t('requiredDocs', { defaultValue: 'Required Documents' })}</h2>
                 </div>
-                {!documentsLoading && !documentsUnlocked && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-950">Unlock your document vault to compare these requirements with your uploaded files. Your files stay private.</p>}
+                {!documentsLoading && !documentsUnlocked && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-950">{t('unlockVault', { defaultValue: 'Unlock your document vault to compare these requirements with your uploaded files. Your files stay private.' })}</p>}
                 <ul className="grid grid-cols-1 gap-3">
                   {requiredDocuments.map((document, index) => {
                     const matched = uploadedDocuments.some((uploaded) => documentMatches(document, uploaded));
@@ -263,7 +264,7 @@ export function SchemeDetailsPage() {
                     </li>;
                   })}
                 </ul>
-                {!documentsUnlocked && !documentsLoading && <Button to="/documents" variant="outline" className="mt-4">Open document vault <ArrowRight className="h-4 w-4" /></Button>}
+                {!documentsUnlocked && !documentsLoading && <Button to="/documents" variant="outline" className="mt-4">{t('openVault', { defaultValue: 'Open document vault' })} <ArrowRight className="h-4 w-4" /></Button>}
               </Card>
             )}
             {scheme.deadline && (
@@ -277,10 +278,10 @@ export function SchemeDetailsPage() {
                 <h3 className={`mb-3 text-lg font-extrabold ${scheme.matchScore > 50 ? 'text-emerald-800' : 'text-red-800'}`}>{t('scheme.yourMatch')}: {scheme.matchScore}%</h3>
                 <ul className="space-y-2">
                   {(scheme.matchReasons || []).map((reason, index) => (
-                    <li key={index} className="text-base font-medium text-slate-900">{reason.label}</li>
+                    <li key={index} className="text-base font-medium text-slate-900">{translateEligibilityReason(reason.label, t)}</li>
                   ))}
                 </ul>
-                <p className="mt-3 text-xs leading-relaxed text-gray-500">{scheme.recommendationNote}</p>
+                <p className="mt-3 text-xs leading-relaxed text-gray-500">{translateEligibilityReason(scheme.recommendationNote, t)}</p>
               </Card>
             )}
           </div>

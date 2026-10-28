@@ -106,6 +106,9 @@ const schemeTranslations = {
   },
 };
 
-export function getSchemeTranslation(id, language, fallback = {}) {
-  return schemeTranslations[language]?.[id] || schemeTranslations.English[id] || fallback;
+export function getSchemeTranslation(id, language) {
+  // Return only an explicit localized entry. Returning the source scheme as a
+  // fallback here masks the larger catalog translations in scheme detail and
+  // card views for schemes without a hand-authored translation.
+  return schemeTranslations[language]?.[id] || schemeTranslations.English[id] || {};
 }

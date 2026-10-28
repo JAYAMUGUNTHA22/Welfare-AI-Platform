@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { pagesEnglish, pagesHindi, pagesTamil, engSchemeDataExtra, hinSchemeDataExtra, tamSchemeDataExtra } from './translations';
 import { engExtra, hinExtra, tamExtra, marExtra } from './extraTranslations';
+import { websiteUiTranslations } from './data/websiteUiTranslations';
 
 const resources = {
   English: {
@@ -98,6 +99,14 @@ const resources = {
         overview: "Overview",
         summary: "Summary",
         yourMatch: "Your Match"
+      },
+      mySchemesPage: {
+        title: "My Schemes", subtitle: "Personalized welfare schemes selected for you based on your profile.",
+        recommended: "Recommended for You", curated: "Curated for {{name}}", editProfile: "Edit Profile",
+        matched: "Schemes Matched for Profile", highlyRelevant: "Highly Relevant Schemes", strongMatches: "Strong Matches", deadlines: "Deadlines Approaching",
+        search: "Search schemes, benefits, or departments...", sortRelevant: "Sort: Most Relevant", sortName: "Sort: Name (A-Z)", sortDeadline: "Sort: Deadline Soon",
+        matchLevel: "Match Level", filters: "Filters", categorySchemes: "{{category}} schemes", recommendedSchemes: "Recommended schemes",
+        personalized: "Personalized recommendations based on your profile.", categoryError: "Category Load Error", recommendationError: "Recommendation Load Error", retry: "Retry Loading", openFind: "Open Find Schemes", benefit: "Benefit", eligibility: "Eligibility", viewDetails: "View Details", welfare: "Welfare Scheme"
       },
       eligibility: {
         assessment: "Eligibility assessment",
@@ -223,6 +232,14 @@ const resources = {
         summary: "सारांश",
         yourMatch: "आपका मिलान"
       },
+      mySchemesPage: {
+        title: "मेरी योजनाएं", subtitle: "आपकी प्रोफ़ाइल के आधार पर चुनी गई व्यक्तिगत कल्याण योजनाएं।",
+        recommended: "आपके लिए अनुशंसित", curated: "{{name}} के लिए चयनित", editProfile: "प्रोफ़ाइल संपादित करें",
+        matched: "प्रोफ़ाइल से मेल खाने वाली योजनाएं", highlyRelevant: "अत्यधिक प्रासंगिक योजनाएं", strongMatches: "मजबूत मिलान", deadlines: "नज़दीक आती अंतिम तिथियां",
+        search: "योजनाएं, लाभ या विभाग खोजें...", sortRelevant: "क्रम: सबसे प्रासंगिक", sortName: "क्रम: नाम (A-Z)", sortDeadline: "क्रम: निकटतम अंतिम तिथि",
+        matchLevel: "मिलान स्तर", filters: "फ़िल्टर", categorySchemes: "{{category}} योजनाएं", recommendedSchemes: "अनुशंसित योजनाएं",
+        personalized: "आपकी प्रोफ़ाइल के आधार पर व्यक्तिगत सुझाव।", categoryError: "श्रेणी लोड करने में त्रुटि", recommendationError: "सुझाव लोड करने में त्रुटि", retry: "फिर से लोड करें", openFind: "योजनाएं खोजें", benefit: "लाभ", eligibility: "पात्रता", viewDetails: "विवरण देखें", welfare: "कल्याण योजना"
+      },
       eligibility: {
         assessment: "पात्रता मूल्यांकन",
         title: "यह योजना आपसे क्यों मेल खाती है",
@@ -346,6 +363,14 @@ const resources = {
         overview: "கண்ணோட்டம்",
         summary: "சுருக்கம்",
         yourMatch: "உங்கள் பொருத்தம்"
+      },
+      mySchemesPage: {
+        title: "என் திட்டங்கள்", subtitle: "உங்கள் சுயவிவரத்தின் அடிப்படையில் தேர்ந்தெடுக்கப்பட்ட நலத்திட்டங்கள்.",
+        recommended: "உங்களுக்கான பரிந்துரைகள்", curated: "{{name}}-க்காகத் தேர்ந்தெடுக்கப்பட்டது", editProfile: "சுயவிவரத்தைத் திருத்து",
+        matched: "சுயவிவரத்துடன் பொருந்திய திட்டங்கள்", highlyRelevant: "மிகவும் பொருத்தமான திட்டங்கள்", strongMatches: "வலுவான பொருத்தங்கள்", deadlines: "நெருங்கும் கடைசி தேதிகள்",
+        search: "திட்டங்கள், நன்மைகள் அல்லது துறைகளைத் தேடுங்கள்...", sortRelevant: "வரிசை: மிகவும் பொருத்தமானது", sortName: "வரிசை: பெயர் (A-Z)", sortDeadline: "வரிசை: கடைசி தேதி",
+        matchLevel: "பொருத்த நிலை", filters: "வடிப்பான்கள்", categorySchemes: "{{category}} திட்டங்கள்", recommendedSchemes: "பரிந்துரைக்கப்பட்ட திட்டங்கள்",
+        personalized: "உங்கள் சுயவிவரத்தின் அடிப்படையிலான தனிப்பயன் பரிந்துரைகள்.", categoryError: "வகையை ஏற்றுவதில் பிழை", recommendationError: "பரிந்துரைகளை ஏற்றுவதில் பிழை", retry: "மீண்டும் ஏற்று", openFind: "திட்டங்களைக் கண்டறி", benefit: "நன்மை", eligibility: "தகுதி", viewDetails: "விவரங்களைக் காண்க", welfare: "நலத்திட்டம்"
       },
       eligibility: {
         assessment: "தகுதி மதிப்பீடு",
@@ -557,6 +582,9 @@ resources['తెలుగు'] = { translation: telTranslation };
 resources['বাংলা']  = { translation: benTranslation };
 resources['ગુજરાતી'] = { translation: gujTranslation };
 resources['ಕನ್ನಡ'] = { translation: kanTranslation };
+for (const [language, translations] of Object.entries(websiteUiTranslations)) {
+  Object.assign(resources[language].translation, translations);
+}
 
 const supportedLanguages = ['English', 'हिंदी', 'தமிழ்'];
 const requestedLanguage = typeof window !== 'undefined' ? (localStorage.getItem('userLanguage') || localStorage.getItem('i18nextLng') || 'English') : 'English';

@@ -137,7 +137,7 @@ def translate_language(code, config, texts):
                     progress.write(json.dumps([source, target], ensure_ascii=False) + "\n")
                     del pending[source]
                     completed += 1
-            if (start // BATCH_SIZE + 1) % 100 == 0 or start + BATCH_SIZE >= len(segments):
+            if (start // BATCH_SIZE + 1) % 10 == 0 or start + BATCH_SIZE >= len(segments):
                 progress.flush()
                 elapsed = max(time.monotonic() - started, 1)
                 rate = completed / elapsed

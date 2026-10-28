@@ -28,6 +28,11 @@ const visibleCategories = [
 
 export function MySchemesPage() {
   const { t, i18n } = useTranslation();
+  const ui = (key) => t(`ui.mySchemes.${key}`);
+  const categoryText = (category) => {
+    const keys = { 'agriculture-rural-environment': 'agriculture', 'education-learning': 'education', 'sports-culture': 'sports', 'social-welfare-empowerment': 'socialWelfare', 'women-and-child': 'womenChild', 'skills-employment': 'skills', 'banking-financial-services-and-insurance': 'banking' };
+    return keys[category?.id] ? ui(keys[category.id]) : category?.label || ui('other');
+  };
 
   const [user, setUser] = useState(null);
   const [recommendedSchemes, setRecommendedSchemes] = useState([]);
@@ -190,8 +195,8 @@ export function MySchemesPage() {
 
   return (
     <DashboardLayout
-      title="My Schemes"
-      subtitle="Personalized welfare schemes selected for you based on your profile."
+      title={t('mySchemesPage.title')}
+      subtitle={t('mySchemesPage.subtitle')}
     >
       <div className="myschemes-page">
       {/* SECTION 1: Personalized Profile Summary Header */}
@@ -199,13 +204,13 @@ export function MySchemesPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-sky-700 border border-sky-200">
-              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ Recommended for You
+              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ {t('mySchemesPage.recommended')}
             </div>
             <h2 className="text-xl font-extrabold text-sky-800 sm:text-2xl">
-              Curated for {user?.fullName || 'You'}
+              {t('mySchemesPage.curated', { name: user?.fullName || 'You' })}
             </h2>
             <p className="text-xs text-slate-600 sm:text-sm">
-              Recommendations are ranked using your profile and the eligibility details available in the MyScheme dataset. Confirm all requirements on the official scheme website before applying.
+              {ui('recommendationNote')}
             </p>
 
             {/* Profile Metadata Chips */}
@@ -248,7 +253,7 @@ export function MySchemesPage() {
               to="/profile"
               className="inline-flex items-center gap-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white border border-sky-600 px-4 py-2.5 text-xs font-bold transition-all shadow-sm"
             >
-              <User className="h-4 w-4" /> Edit Profile <ArrowRight className="h-3.5 w-3.5" />
+              <User className="h-4 w-4" /> {t('mySchemesPage.editProfile')} <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
@@ -263,7 +268,7 @@ export function MySchemesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-navy-900">{recommendedSchemes.length}</p>
-              <p className="text-xs font-medium text-gray-500">Schemes Matched for Profile</p>
+              <p className="text-xs font-medium text-gray-500">{t('mySchemesPage.matched')}</p>
             </div>
           </div>
 
@@ -273,7 +278,7 @@ export function MySchemesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-sky-950">{highlyRelevantCount}</p>
-              <p className="text-xs font-medium text-sky-700">Highly Relevant Schemes</p>
+              <p className="text-xs font-medium text-sky-700">{t('mySchemesPage.highlyRelevant')}</p>
             </div>
           </div>
 
@@ -283,7 +288,7 @@ export function MySchemesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-emerald-950">{strongMatchesCount}</p>
-              <p className="text-xs font-medium text-emerald-700">Strong Matches</p>
+              <p className="text-xs font-medium text-emerald-700">{t('mySchemesPage.strongMatches')}</p>
             </div>
           </div>
 
@@ -293,7 +298,7 @@ export function MySchemesPage() {
             </div>
             <div>
               <p className="text-2xl font-black text-amber-950">{approachingDeadlineCount}</p>
-              <p className="text-xs font-medium text-amber-700">Deadlines Approaching</p>
+              <p className="text-xs font-medium text-amber-700">{t('mySchemesPage.deadlines')}</p>
             </div>
           </div>
         </div>
@@ -307,7 +312,7 @@ export function MySchemesPage() {
             <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search schemes, benefits, or departments..."
+              placeholder={t('mySchemesPage.search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-4 text-sm text-navy-900 placeholder:text-gray-400 focus:border-primary-500 focus:bg-white focus:outline-hidden"
@@ -326,9 +331,9 @@ export function MySchemesPage() {
               onChange={(e) => setSortBy(e.target.value)}
               className="rounded-xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-bold text-navy-700 focus:border-primary-500 cursor-pointer"
             >
-              <option value="relevant">Sort: Most Relevant</option>
-              <option value="a-z">Sort: Name (A-Z)</option>
-              <option value="deadline">Sort: Deadline Soon</option>
+              <option value="relevant">{t('mySchemesPage.sortRelevant')}</option>
+              <option value="a-z">{t('mySchemesPage.sortName')}</option>
+              <option value="deadline">{t('mySchemesPage.sortDeadline')}</option>
             </select>
 
             {/* Mobile Filter Toggle Button */}
@@ -336,7 +341,7 @@ export function MySchemesPage() {
               onClick={() => setShowMobileFilters(!showMobileFilters)}
               className="flex md:hidden items-center gap-1.5 rounded-xl border border-gray-200 bg-white py-2.5 px-3 text-xs font-bold text-navy-700"
             >
-              <Filter className="h-4 w-4 text-primary-600" /> Filters
+              <Filter className="h-4 w-4 text-primary-600" /> {ui('filters')}
             </button>
           </div>
         </div>
@@ -344,7 +349,7 @@ export function MySchemesPage() {
         {/* Match level filter */}
         <div className="mt-4 hidden md:flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-2xs font-bold uppercase tracking-wider text-gray-400">Match Level:</span>
+            <span className="text-2xs font-bold uppercase tracking-wider text-gray-400">{t('mySchemesPage.matchLevel')}:</span>
             <select
               disabled={isShowingCategory}
               value={selectedMatchTier}
@@ -362,7 +367,7 @@ export function MySchemesPage() {
         {showMobileFilters && (
           <div className="mt-4 border-t border-gray-100 pt-3 md:hidden space-y-3">
             <div>
-              <p className="text-xs font-bold text-gray-500 mb-1.5">Match Level</p>
+              <p className="text-xs font-bold text-gray-500 mb-1.5">{t('mySchemesPage.matchLevel')}</p>
               <select
                 disabled={isShowingCategory}
                 value={selectedMatchTier}
@@ -382,11 +387,11 @@ export function MySchemesPage() {
       <div className="mb-4 flex items-end justify-between gap-4">
         <div>
           <h2 className="text-xl font-extrabold text-slate-800">
-            {isShowingCategory ? `${visibleCategories.find(({ id }) => id === selectedCategory)?.label || 'Category'} schemes` : 'Recommended schemes'}
+            {isShowingCategory ? t('mySchemesPage.categorySchemes', { category: categoryText(visibleCategories.find(({ id }) => id === selectedCategory)) }) : t('mySchemesPage.recommendedSchemes')}
             {!categoryLoading && <span className="ml-2 text-sm font-semibold text-slate-500">({schemesToDisplay.length})</span>}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            {isShowingCategory ? 'Showing up to 10 schemes from the selected category, with benefit and eligibility details.' : 'Personalized recommendations based on your profile.'}
+            {isShowingCategory ? ui('categoryDescription') : ui('personalizedDescription')}
           </p>
         </div>
       </div>
@@ -407,25 +412,25 @@ export function MySchemesPage() {
       ) : (isShowingCategory ? categoryError : error) ? (
         <div className="rounded-2xl border border-error-200 bg-error-50/50 p-8 text-center shadow-xs">
           <AlertCircle className="mx-auto h-10 w-10 text-error-500" />
-          <h3 className="mt-2 text-base font-bold text-navy-900">{isShowingCategory ? 'Category Load Error' : 'Recommendation Load Error'}</h3>
+          <h3 className="mt-2 text-base font-bold text-navy-900">{isShowingCategory ? ui('categoryLoadError') : ui('recommendationLoadError')}</h3>
           <p className="mt-1 text-sm text-navy-600">{isShowingCategory ? categoryError : error}</p>
           <Button onClick={() => isShowingCategory ? setCategoryLoadAttempt((attempt) => attempt + 1) : loadUserAndSchemes()} variant="outline" size="sm" className="mt-4 gap-2">
-            <RefreshCw className="h-4 w-4" /> Retry Loading
+            <RefreshCw className="h-4 w-4" /> {ui('retry')}
           </Button>
         </div>
       ) : schemesToDisplay.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 bg-white p-10 text-center shadow-xs">
           <Filter className="mx-auto h-10 w-10 text-gray-400 mb-2" />
           <h3 className="text-base font-bold text-navy-900">
-            {isShowingCategory ? 'No schemes found in this category' : hasProfileData ? 'No schemes found matching your filter' : 'Add profile details to get personalized scheme suggestions'}
+            {isShowingCategory ? ui('emptyCategory') : hasProfileData ? ui('emptyFilter') : ui('emptyProfile')}
           </h3>
           <p className="mt-1 text-xs text-gray-500">
-            {isShowingCategory ? 'Try another category or clear your search.' : hasProfileData
-              ? 'Try clearing search keywords or resetting match level filters.'
-              : 'Enter your age, occupation, income, and category in Find Schemes.'}
+            {isShowingCategory ? ui('emptyCategoryHelp') : hasProfileData
+              ? ui('emptyFilterHelp')
+              : ui('emptyProfileHelp')}
           </p>
           {!isShowingCategory && !hasProfileData && (
-            <Button to="/schemes" variant="outline" size="sm" className="mt-4">Open Find Schemes</Button>
+            <Button to="/schemes" variant="outline" size="sm" className="mt-4">{ui('findSchemes')}</Button>
           )}
           <Button
             onClick={() => {
@@ -437,7 +442,7 @@ export function MySchemesPage() {
             size="sm"
             className="mt-4"
           >
-            Reset Filters
+            {ui('resetFilters')}
           </Button>
         </div>
       ) : (
@@ -445,7 +450,7 @@ export function MySchemesPage() {
           {schemesToDisplay.map((scheme) => {
             const sid = scheme.schemeId || scheme.id;
             if (isShowingCategory) {
-              const categoryLabel = visibleCategories.find(({ id }) => id === selectedCategory)?.label || 'Welfare';
+              const categoryLabel = categoryText(visibleCategories.find(({ id }) => id === selectedCategory));
               return (
                 <Card key={sid} className="flex flex-col justify-between rounded-2xl border border-sky-100 bg-white p-6 shadow-card transition-all hover:border-sky-300 hover:shadow-xl">
                   <div>
@@ -458,19 +463,19 @@ export function MySchemesPage() {
                     </SchemeDetailsLink>
                     <p className="mb-4 text-xs font-medium text-slate-500">{getSchemeCatalogText(scheme.provider, i18n.language)}</p>
                     <div className="mb-3 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
-                      <p className="mb-1 text-2xs font-black uppercase tracking-wider text-sky-700">Benefit</p>
+              <p className="mb-1 text-2xs font-black uppercase tracking-wider text-sky-700">{t('mySchemesPage.benefit')}</p>
                       <p className="line-clamp-4 text-xs font-semibold leading-relaxed text-slate-700">{getSchemeCatalogText(scheme.benefitSummary || 'See scheme details for information about the benefits.', i18n.language)}</p>
                     </div>
                     {scheme.eligibility && (
                       <div className="mb-4 rounded-xl bg-slate-50 p-3.5">
-                        <p className="mb-1 text-2xs font-black uppercase tracking-wider text-slate-500">Eligibility</p>
+                        <p className="mb-1 text-2xs font-black uppercase tracking-wider text-slate-500">{t('mySchemesPage.eligibility')}</p>
                         <p className="line-clamp-4 text-xs leading-relaxed text-slate-600">{getSchemeCatalogText(scheme.eligibility, i18n.language)}</p>
                       </div>
                     )}
                     {scheme.details && <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-slate-500">{getSchemeCatalogText(scheme.details, i18n.language)}</p>}
                   </div>
                   <div className="mt-auto flex gap-2 border-t border-slate-100 pt-3">
-                    <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">View Details</SchemeDetailsButton>
+                    <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">{t('mySchemesPage.viewDetails')}</SchemeDetailsButton>
                     <SchemeApplicationAction scheme={scheme} variant="primary" size="sm" className="flex-1 justify-center gap-1" />
                   </div>
                 </Card>
@@ -497,11 +502,11 @@ export function MySchemesPage() {
                   {/* Card Header: Category & Match Tier Badge */}
                   <div className="mb-4 flex items-center justify-between gap-2 border-b border-gray-100 pb-3">
                     <span className="truncate rounded-full bg-sky-50 border border-sky-200 px-3 py-1 text-2xs font-black uppercase text-sky-700">
-                      {visibleCategories.find(({ id }) => scheme.tags?.includes(id))?.label || 'Welfare Scheme'}
+                      {categoryText(visibleCategories.find(({ id }) => scheme.tags?.includes(id)))}
                     </span>
 
                     <div className={`flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-bold ${assessmentColor}`}>
-                      {eligibilityAssessment.label}
+                      {eligibilityAssessment.label === 'Potentially eligible' ? t('ui.status.potential') : t('ui.status.needsInfo')}
                     </div>
                   </div>
 
@@ -521,7 +526,7 @@ export function MySchemesPage() {
                   {/* Primary Benefit Summary */}
                   <div className="mb-4 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
                     <span className="text-2xs font-black uppercase tracking-wider text-primary-700 block mb-0.5">
-                      Benefit:
+                      {ui('benefitLabel')}
                     </span>
                     <p className="line-clamp-3 text-xs font-bold leading-snug text-navy-900">
                       {getSchemeCatalogText(scheme.benefitSummary || 'See scheme details for information about the benefits.', i18n.language)}
@@ -538,7 +543,7 @@ export function MySchemesPage() {
                 {/* Card Action Buttons */}
                 <div className="flex gap-2 pt-3 border-t border-gray-100 mt-auto">
                   <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
-                    View Details
+                    {t('ui.common.viewDetails')}
                   </SchemeDetailsButton>
                   <SchemeApplicationAction scheme={scheme} variant="primary" size="sm" className="flex-1 justify-center gap-1" />
                 </div>

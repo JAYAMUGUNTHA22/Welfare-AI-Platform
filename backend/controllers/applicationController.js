@@ -1,7 +1,7 @@
 import { Application } from '../models/Application.js';
 import { Citizen } from '../models/Citizen.js';
 
-const MAX_APPLICATIONS = 2;
+const MAX_APPLICATIONS = 3;
 const PENDING_TTL_MS = 24 * 60 * 60 * 1000;
 const ACTIVE_STATUSES = ['pending_confirmation', 'submitted'];
 
@@ -77,7 +77,7 @@ async function createApplication(userId, snapshot, status) {
   }
 
   const reservedUser = await reserveApplicationSlot(userId);
-  if (!reservedUser) return { error: 'You can track applications for up to two schemes. Remove an application before adding another.' };
+  if (!reservedUser) return { error: 'You can track applications for up to three schemes. Remove an application before adding another.' };
 
   try {
     const application = await Application.create({

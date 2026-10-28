@@ -503,7 +503,7 @@ export function FindSchemesPage() {
                       {/* Action Buttons */}
                       <div className="flex gap-2 pt-2 border-t border-gray-100">
                         <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} state={{ recommendation: { matchScore: scheme.matchScore, matchScoreLabel: scheme.matchScoreLabel, matchTier: scheme.matchTier, matchReasons: scheme.matchReasons, recommendationNote: scheme.recommendationNote } }} variant="outline" size="sm" className="flex-1 justify-center">
-                          View Details
+                          {t('ui.common.viewDetails')}
                         </SchemeDetailsButton>
                         <SchemeApplicationAction scheme={scheme} variant="primary" size="sm" className="flex-1 justify-center gap-1" />
                       </div>

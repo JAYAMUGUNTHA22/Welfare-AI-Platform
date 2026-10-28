@@ -1,25 +1,70 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  GitCompare, Search, X, Sparkles, Check, CheckCircle2, AlertCircle,
-  ArrowRight, ShieldCheck, Clock, FileText, Wallet, Calendar, MapPin,
-  Briefcase, ChevronRight, Award, Plus, RefreshCw, Info, HelpCircle, Layers
+  GitCompare, Search, X, Sparkles, Check, CheckCircle2,
+  ArrowRight, FileText, Wallet, Info, Layers
 } from 'lucide-react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { MatchScore } from '@/components/shared/MatchScore';
-import { VerificationBadge } from '@/components/shared/VerificationBadge';
-import { getMe, getAllSchemes } from '@/services/api';
-import { schemes as mockSchemes } from '@/data/mockData';
+import { getMe } from '@/services/api';
 import { useTranslation } from 'react-i18next';
-import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
+import { getSchemeCatalogText, getSchemeCategoryLabel } from '@/utils/schemeCatalogTranslations';
 import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
 import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
+import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
+
+function statedBenefitAmount(text) {
+  const match = String(text || '').match(/(?:₹|rs\.?\s*|inr\s*)\s*([\d,]+(?:\.\d+)?)\s*(crore|cr|lakh|lac|thousand|k)?/i);
+  if (!match) return null;
+  const value = Number(match[1].replace(/,/g, ''));
+  const unit = (match[2] || '').toLowerCase();
+  const multiplier = ['crore', 'cr'].includes(unit) ? 10000000
+    : ['lakh', 'lac'].includes(unit) ? 100000
+      : ['thousand', 'k'].includes(unit) ? 1000 : 1;
+  return value * multiplier;
+}
+
+function normalizeDocuments(documents) {
+  if (Array.isArray(documents)) return documents.map((item) => String(item).trim()).filter(Boolean);
+  if (typeof documents !== 'string' || !documents.trim()) return [];
+  return documents.split(/[;,\n•]+/).map((item) => item.trim()).filter(Boolean);
+}
+
+function conciseText(value, maxLength = 180) {
+  const text = (Array.isArray(value) ? value.join(' ') : String(value || '')).replace(/\s+/g, ' ').trim();
+  if (!text) return 'Not listed in the catalogue.';
+  return text.length > maxLength ? `${text.slice(0, maxLength).trimEnd()}…` : text;
+}
+
+function localizedCatalogText(value, language) {
+  if (Array.isArray(value)) {
+    return value.map((item) => typeof item === 'string' ? item : item?.criterion_text || '')
+      .filter(Boolean).map((item) => getSchemeCatalogText(item, language)).join(' ');
+  }
+  return getSchemeCatalogText(String(value || ''), language);
+}
 
 export function ComparePage() {
   const { t, i18n } = useTranslation();
+  const ui = (key, options) => t(`ui.compare.${key}`, options);
+  const categoryLabel = (value) => {
+    const normalized = String(value || '').toLowerCase().replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+    const catalogKey = ({ 'agriculture rural environment': 'catAgriculture', agriculture: 'catAgriculture', 'education learning': 'catEducation', education: 'catEducation', 'business entrepreneurship': 'catBusiness', business: 'catBusiness', 'social welfare empowerment': 'catSocialWelfare', 'social welfare': 'catSocialWelfare', 'women and child': 'catWomenChild', 'skills employment': 'catSkills', skills: 'catSkills', 'banking financial services and insurance': 'catBanking', banking: 'catBanking', 'health wellness': 'catHealth', healthcare: 'catHealth', health: 'catHealth', 'housing shelter': 'catHousing', housing: 'catHousing', 'sports culture': 'catSports', sports: 'catSports', 'entrepreneurship & micro-loans': 'catBusiness', 'agriculture & rural employment': 'catAgriculture', 'education & scholarships': 'catEducation', 'retirement & financial security': 'catBanking' })[normalized];
+    if (catalogKey) return t(catalogKey, { defaultValue: value });
+    return getSchemeCategoryLabel(value, i18n.language) || value;
+  };
+  const compareText = (scheme, field, fallback) => {
+    const id = String(scheme.schemeId || scheme.id || '').toLowerCase();
+    const catalog = id === 'aabcs' ? 'aabcs' : id === 'financial-assistance-scheme' ? 'apeda' : id === 'biocare' ? 'biocare' : null;
+    return catalog && i18n.language !== 'English'
+      ? ui(`${catalog}${field}`)
+      : localizedCatalogText(fallback, i18n.language);
+  };
+  const matchTierLabel = (tier) => {
+    const key = ({ 'Strong Match': 'mySchemesPage.strongMatchFilter', 'Potential Match': 'mySchemesPage.potentialMatchFilter', 'Needs Review': 'mySchemesPage.needsReviewFilter' })[tier];
+    return key ? t(key, { defaultValue: tier }) : tier;
+  };
   const [searchParams] = useSearchParams();
 
   const [allSchemesList, setAllSchemesList] = useState([]);
@@ -35,28 +80,35 @@ export function ComparePage() {
   const [manualModalOpen, setManualModalOpen] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [schemesRes, meRes] = await Promise.allSettled([
-        getAllSchemes(),
-        getMe()
-      ]);
+      let cachedProfile = {};
+      try { cachedProfile = JSON.parse(localStorage.getItem('currentUser') || '{}') || {}; } catch { /* use account profile */ }
+      let profile = cachedProfile;
+      try {
+        const meRes = await getMe();
+        profile = meRes?.user || meRes || cachedProfile;
+      } catch { /* use the saved profile when account refresh is unavailable */ }
+      setUserProfile(profile);
 
-      let loadedSchemes = mockSchemes;
-      if (schemesRes.status === 'fulfilled' && schemesRes.value && schemesRes.value.length > 0) {
-        loadedSchemes = schemesRes.value;
-      }
+      const recommendations = await getPersonalizedSchemeRecommendations(profile, 4, { perSource: true });
+      const dashboardSchemes = ['state', 'central', 'private'].flatMap((sourceType) =>
+        recommendations.filter((scheme) => scheme.sourceType === sourceType).slice(0, 4)
+      );
+      const uniqueSchemes = [...new Map(dashboardSchemes.map((scheme) => [scheme.schemeId || scheme.id, scheme])).values()];
+      const loadedSchemes = uniqueSchemes.map((scheme) => ({
+        ...scheme,
+        benefitSummary: scheme.benefitSummary || 'No benefit summary is available in the catalogue.',
+        benefitAmount: scheme.benefitAmount || 'Amount not stated in catalogue',
+        eligibility: typeof scheme.eligibility === 'string' ? [scheme.eligibility] : (scheme.eligibility || []),
+        documentsRequired: normalizeDocuments(scheme.documentsRequired),
+        processingTime: scheme.processingTime || 'Not stated in the catalogue',
+        applicationMethod: scheme.applicationMethod || scheme.applicationProcess || 'See official scheme details',
+        deadline: scheme.deadline || 'Check official scheme source',
+      }));
       setAllSchemesList(loadedSchemes);
-
-      if (meRes.status === 'fulfilled' && meRes.value?.user) {
-        setUserProfile(meRes.value.user);
-      }
 
       // Pre-select preset or default first 2 schemes
       const initialIds = searchParams.get('ids')?.split(',').filter(Boolean);
@@ -64,15 +116,29 @@ export function ComparePage() {
         setSelectedIds(initialIds.slice(0, 3));
         setIsComparing(true);
       } else {
-        setSelectedIds([loadedSchemes[0].id || loadedSchemes[0].schemeId, loadedSchemes[1].id || loadedSchemes[1].schemeId]);
+        const suggested = [...loadedSchemes].sort((a, b) => {
+          const amountA = statedBenefitAmount(a.benefitSummary);
+          const amountB = statedBenefitAmount(b.benefitSummary);
+          if (amountA != null && amountB != null && amountA !== amountB) return amountB - amountA;
+          if (amountA != null && amountB == null) return -1;
+          if (amountB != null && amountA == null) return 1;
+          return (b.rankingScore || 0) - (a.rankingScore || 0);
+        }).slice(0, 3);
+        setSelectedIds(suggested.map((scheme) => scheme.id || scheme.schemeId));
+        setIsComparing(suggested.length >= 2);
       }
     } catch (e) {
       console.error('Failed to load schemes', e);
-      setAllSchemesList(mockSchemes);
+      setError('We could not load your dashboard recommendations. Please try again after refreshing your profile.');
+      setAllSchemesList([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [searchParams]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const toggleSelectScheme = (id) => {
     setSelectedIds((prev) => {
@@ -128,11 +194,7 @@ export function ComparePage() {
         else if (catKey.includes('agri') || catKey.includes('employ')) { title = 'Agriculture & Rural Employment'; icon = '🌾'; }
 
         // Similarity reason badges based on actual fields
-        const reasons = [
-          `Same category (${title})`,
-          `Similar target beneficiaries & purpose`,
-          `Matching state availability`,
-        ];
+        const reasons = [ui('sameCategory'), ui('similarPurpose'), ui('stateAvailability')];
 
         groups.push({
           id: catKey,
@@ -168,57 +230,30 @@ export function ComparePage() {
     if (schemesToCompare.length < 2) return null;
 
     // Benefit numerical comparison
-    const benefitValues = schemesToCompare.map((s) => {
-      const bStr = s.benefitAmount || s.benefitSummary || '';
-      if (bStr.includes('5 lakh')) return 500000;
-      if (bStr.includes('2.67 lakh')) return 267000;
-      if (bStr.includes('1 Crore') || bStr.includes('1Cr')) return 10000000;
-      if (bStr.includes('10 lakh')) return 1000000;
-      if (bStr.includes('50,000')) return 50000;
-      if (bStr.includes('6,000')) return 6000;
-      return 10000;
-    });
-
-    const maxBenefitIndex = benefitValues.indexOf(Math.max(...benefitValues));
-    const bestBenefitScheme = schemesToCompare[maxBenefitIndex];
-
-    const fastProcessingScheme = schemesToCompare.find(
-      (s) => s.processingTime?.toLowerCase().includes('same day') || s.processingTime?.toLowerCase().includes('7-15')
-    ) || schemesToCompare[0];
-
-    const minDocsScheme = [...schemesToCompare].sort(
-      (a, b) => (a.documentsRequired?.length || 0) - (b.documentsRequired?.length || 0)
-    )[0];
-
-    const easyAppScheme = schemesToCompare.find(
-      (s) => s.applicationMethod?.toLowerCase().includes('online')
-    ) || schemesToCompare[0];
+    const statedAmounts = schemesToCompare.map((scheme) => statedBenefitAmount(scheme.benefitSummary));
+    const comparableAmounts = statedAmounts.filter((amount) => amount != null);
+    const maxStatedAmount = comparableAmounts.length ? Math.max(...comparableAmounts) : null;
+    const bestBenefitScheme = maxStatedAmount == null
+      ? null
+      : schemesToCompare.find((scheme) => statedBenefitAmount(scheme.benefitSummary) === maxStatedAmount);
 
     let topChoice = null;
     let topChoiceReasons = [];
 
-    if (bestBenefitScheme && bestBenefitScheme === fastProcessingScheme) {
+    if (bestBenefitScheme) {
       topChoice = bestBenefitScheme;
       topChoiceReasons = [
-        `Highest financial coverage (${topChoice.benefitAmount})`,
-        `Fastest processing time (${topChoice.processingTime})`,
-        `Online application process available`,
+        ui('highestAmount', { amount: conciseText(getSchemeCatalogText(topChoice.benefitSummary, i18n.language), 90) }),
+        ui('checkFrequency'),
       ];
-    } else if (bestBenefitScheme) {
-      topChoice = bestBenefitScheme;
-      topChoiceReasons = [
-        `Offers maximum benefit amount (${topChoice.benefitAmount})`,
-        `Extensive coverage for target eligibility group`,
-      ];
+    } else {
+      topChoiceReasons = [ui('noAmounts'), ui('checkEligibility')];
     }
 
     return {
       topChoice,
       topChoiceReasons,
       bestBenefitScheme,
-      fastProcessingScheme,
-      minDocsScheme,
-      easyAppScheme,
     };
   };
 
@@ -226,21 +261,21 @@ export function ComparePage() {
 
   return (
     <DashboardLayout
-      title="Compare Schemes"
-      subtitle="Compare similar welfare schemes side by side and understand which option may work better for your needs."
+      title={t('compareTitle')}
+      subtitle={ui('subtitle')}
     >
       {/* SECTION 1: Top Navigation Bar & Dual Path Callout */}
       <div className="compare-hero mb-8 rounded-2xl border p-6 shadow-lg lg:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-1.5 max-w-2xl">
             <div className="inline-flex items-center gap-2 rounded-full bg-white px-3.5 py-1 text-xs font-bold text-sky-700 border border-sky-200">
-              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ Find the Right Scheme for You
+              <Sparkles className="h-3.5 w-3.5 text-sky-600" /> ✨ {ui('heroLabel')}
             </div>
             <h2 className="text-2xl font-black text-sky-900 sm:text-3xl">
-              Choose How You Want to Compare
+              {ui('heroTitle')}
             </h2>
             <p className="text-xs text-slate-600 sm:text-sm">
-              Let WelfareAI automatically detect similar schemes for you, or manually pick the exact schemes you wish to inspect.
+              {ui('heroDescription')}
             </p>
           </div>
 
@@ -254,7 +289,7 @@ export function ComparePage() {
               size="md"
               className={!isComparing ? 'shadow-md ring-2 ring-sky-100' : 'bg-white text-sky-800 border-sky-200 hover:bg-sky-50'}
             >
-              <Sparkles className="h-4 w-4" /> Smart Similar Suggestions
+              <Sparkles className="h-4 w-4" /> {ui('smart')}
             </Button>
 
             <Button
@@ -263,58 +298,41 @@ export function ComparePage() {
               size="md"
               className="bg-white text-sky-800 border-sky-200 hover:bg-sky-50 font-extrabold shadow-md cursor-pointer"
             >
-              <Search className="h-4 w-4 text-primary-600" /> Compare Schemes Manually
+              <Search className="h-4 w-4 text-primary-600" /> {ui('manual')}
             </Button>
           </div>
         </div>
       </div>
 
       {/* VIEW A: DETAILED COMPARISON VIEW */}
-      {isComparing ? (
+      {loading ? (
+        <Card className="p-6 text-sm text-slate-600">{t('ui.common.loading')}</Card>
+      ) : allSchemesList.length === 0 ? (
+        <Card className="p-6">
+          <p className="font-bold text-slate-900">{error || ui('noDashboard')}</p>
+          <p className="mt-1 text-sm text-slate-600">{t('ui.compare.addProfile')}</p>
+          <Button className="mt-4" onClick={() => window.location.assign('/profile')}>{ui('updateProfile')}</Button>
+        </Card>
+      ) : isComparing ? (
         <div className="space-y-8 animate-slide-down">
           {/* Top Control Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-xl bg-white border border-gray-200 p-4 shadow-xs">
             <div className="flex items-center gap-2">
               <GitCompare className="h-5 w-5 text-primary-600" />
               <span className="font-extrabold text-navy-900 text-sm sm:text-base">
-                Comparing {selectedSchemes.length} Schemes Side by Side
+                {ui('comparing', { count: selectedSchemes.length })}
               </span>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <Button onClick={() => setIsComparing(false)} variant="outline" size="sm">
-                ← Back to Similar Suggestions
+                ← {ui('backSuggestions')}
               </Button>
               <Button onClick={() => setManualModalOpen(true)} variant="outline" size="sm">
-                <Search className="h-3.5 w-3.5" /> Change Schemes
+                <Search className="h-3.5 w-3.5" /> {ui('change')}
               </Button>
               <button onClick={clearAllSelected} className="text-xs font-bold text-gray-500 hover:text-error-600 px-2">
-                Clear
+                {ui('clear')}
               </button>
-            </div>
-          </div>
-
-          {/* AT A GLANCE SUMMARY BAR */}
-          <div className="rounded-2xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-5 shadow-xs">
-            <h4 className="text-xs font-black uppercase tracking-wider text-primary-800 mb-3 flex items-center gap-1.5">
-              <Sparkles className="h-4 w-4 text-primary-600" /> At a Glance Key Highlights
-            </h4>
-            <div className={`grid gap-4 sm:grid-cols-${selectedSchemes.length}`}>
-              {selectedSchemes.map((s) => (
-                <div key={s.id || s.schemeId} className="rounded-xl bg-white p-3.5 border border-sky-200 shadow-2xs">
-                  <p className="font-extrabold text-navy-900 text-sm truncate">{s.name}</p>
-                  <p className="text-xs font-extrabold text-primary-700 mt-0.5">{s.benefitAmount}</p>
-                  <div className="mt-2 space-y-1 text-2xs text-navy-700 font-semibold">
-                    <p className="flex items-center gap-1 text-emerald-700">
-                      <Check className="h-3 w-3 text-emerald-600 shrink-0" />
-                      {s.processingTime?.includes('Same') ? '⚡ Same day processing' : `⏱ ${s.processingTime}`}
-                    </p>
-                    <p className="flex items-center gap-1 text-blue-700">
-                      <Check className="h-3 w-3 text-blue-600 shrink-0" />
-                      {s.applicationMethod?.includes('Online') ? '🌐 Online portal application' : s.applicationMethod}
-                    </p>
-                  </div>
-                </div>
-              ))}
             </div>
           </div>
 
@@ -324,16 +342,16 @@ export function ComparePage() {
               <table className="w-full border-collapse text-left">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50/70">
-                    <th className="w-48 p-4 text-xs font-bold uppercase tracking-wider text-gray-500">Comparison Area</th>
+                    <th className="w-48 p-4 text-xs font-bold uppercase tracking-wider text-gray-500">{ui('area')}</th>
                     {selectedSchemes.map((s) => (
                       <th key={s.id || s.schemeId} className="min-w-[240px] p-4 align-top">
                         <div className="flex items-start justify-between gap-2">
                           <div>
                             <span className="rounded-full bg-sky-100 text-sky-800 text-2xs font-extrabold px-2.5 py-0.5 uppercase block w-fit mb-1">
-                              {s.category?.replace('-', ' ')}
+                              {categoryLabel(s.category)}
                             </span>
-                            <h4 className="text-base font-extrabold text-navy-900 leading-snug">{s.name}</h4>
-                            <p className="text-xs font-medium text-gray-500 mt-0.5">{s.provider}</p>
+                            <h4 className="text-base font-extrabold text-navy-900 leading-snug">{getSchemeCatalogText(s.name, i18n.language)}</h4>
+                            <p className="text-xs font-medium text-gray-500 mt-0.5">{getSchemeCatalogText(s.provider, i18n.language)}</p>
                           </div>
                           <button
                             onClick={() => removeSelectedScheme(s.id || s.schemeId)}
@@ -351,12 +369,12 @@ export function ComparePage() {
                   {/* BENEFITS SECTION */}
                   <tr className="bg-sky-50/60">
                     <td className="p-4 font-extrabold text-navy-900 flex items-center gap-1.5">
-                      <Wallet className="h-4 w-4 text-primary-600" /> Benefit Amount & Summary
+                      <Wallet className="h-4 w-4 text-primary-600" /> {ui('benefitSummary')}
                     </td>
                     {selectedSchemes.map((s) => (
                       <td key={s.id || s.schemeId} className="p-4">
-                        <span className="font-black text-primary-900 block text-base">{s.benefitAmount}</span>
-                        <p className="text-xs text-navy-700 mt-1 leading-relaxed">{s.benefitSummary}</p>
+                        <span className="font-black text-primary-900 block text-base">{s.benefitAmount === 'Amount not stated in catalogue' ? ui('amountNotListed') : s.benefitAmount}</span>
+                        <p className="text-xs text-navy-700 mt-1 leading-relaxed">{conciseText(compareText(s, 'Benefit', s.benefitSummary))}</p>
                       </td>
                     ))}
                   </tr>
@@ -365,11 +383,13 @@ export function ComparePage() {
                   {userProfile && (
                     <tr className="bg-emerald-50/20">
                       <td className="p-4 font-extrabold text-emerald-900 flex items-center gap-1.5">
-                        <CheckCircle2 className="h-4 w-4 text-emerald-600" /> Your Profile Fit
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600" /> {ui('profileFit')}
                       </td>
                       {selectedSchemes.map((s) => (
                         <td key={s.id || s.schemeId} className="p-4 text-xs font-bold text-emerald-900">
-                          ✓ Fits resident of {userProfile.state || 'State'} & Age {userProfile.age || '30'}
+                          {s.matchScore != null
+                            ? `${s.matchScore}% ${ui('profileFit')} · ${matchTierLabel(s.matchTier) || ui('potential')}`
+                            : ui('profileFitNote')}
                         </td>
                       ))}
                     </tr>
@@ -378,89 +398,25 @@ export function ComparePage() {
                   {/* ELIGIBILITY SECTION */}
                   <tr>
                     <td className="p-4 font-bold text-navy-800 flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-primary-600" /> Key Eligibility Criteria
+                      <FileText className="h-4 w-4 text-primary-600" /> {ui('eligibility')}
                     </td>
                     {selectedSchemes.map((s) => (
                       <td key={s.id || s.schemeId} className="p-4 text-xs text-navy-700">
-                        <ul className="space-y-1">
-                          {s.eligibility?.map((item, idx) => (
-                            <li key={idx} className="flex items-start gap-1.5">
-                              <span className="text-primary-600 mt-0.5">•</span>
-                              <span>{item}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* DOCUMENTS SECTION */}
-                  <tr>
-                    <td className="p-4 font-bold text-navy-800 flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-primary-600" /> Documents Required
-                    </td>
-                    {selectedSchemes.map((s) => {
-                      const count = s.documentsRequired?.length || 0;
-                      return (
-                        <td key={s.id || s.schemeId} className="p-4 text-xs text-navy-700">
-                          <span className="font-extrabold text-navy-900 block mb-1">
-                            {count} Documents {count <= 3 && <span className="text-emerald-600 text-2xs font-bold">(✓ Fewer docs)</span>}
-                          </span>
-                          {s.documentsRequired?.join(', ')}
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* PROCESSING TIME */}
-                  <tr>
-                    <td className="p-4 font-bold text-navy-800 flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-primary-600" /> Processing Time
-                    </td>
-                    {selectedSchemes.map((s) => {
-                      const isFast = s.processingTime?.toLowerCase().includes('same day');
-                      return (
-                        <td key={s.id || s.schemeId} className="p-4 text-xs font-bold text-navy-900">
-                          {s.processingTime} {isFast && <span className="text-emerald-600 text-2xs font-bold">(⚡ Faster)</span>}
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {/* APPLICATION METHOD */}
-                  <tr>
-                    <td className="p-4 font-bold text-navy-800 flex items-center gap-1.5">
-                      <ShieldCheck className="h-4 w-4 text-primary-600" /> Application Method
-                    </td>
-                    {selectedSchemes.map((s) => (
-                      <td key={s.id || s.schemeId} className="p-4 text-xs font-bold text-navy-900">
-                        {s.applicationMethod}
-                      </td>
-                    ))}
-                  </tr>
-
-                  {/* DEADLINE */}
-                  <tr>
-                    <td className="p-4 font-bold text-navy-800 flex items-center gap-1.5">
-                      <Calendar className="h-4 w-4 text-primary-600" /> Deadline
-                    </td>
-                    {selectedSchemes.map((s) => (
-                      <td key={s.id || s.schemeId} className="p-4 text-xs font-semibold text-navy-900">
-                        {s.deadline}
+                        {conciseText(compareText(s, 'Eligibility', s.eligibility), 180)}
                       </td>
                     ))}
                   </tr>
 
                   {/* ACTIONS */}
                   <tr className="bg-gray-50/50">
-                    <td className="p-4 font-bold text-navy-800">Actions</td>
+                    <td className="p-4 font-bold text-navy-800">{ui('actions')}</td>
                     {selectedSchemes.map((s) => {
                       const sid = s.id || s.schemeId;
                       return (
                         <td key={sid} className="p-4">
                           <div className="flex flex-col gap-2">
                             <SchemeDetailsButton scheme={s} to={`/schemes/${sid}`} variant="primary" size="sm" className="w-full justify-center">
-                              View Details
+                              {t('ui.common.viewDetails')}
                             </SchemeDetailsButton>
                             <SchemeApplicationAction scheme={s} variant="outline" size="sm" className="w-full justify-center gap-1" />
                           </div>
@@ -473,31 +429,6 @@ export function ComparePage() {
             </div>
           </div>
 
-          {/* 🔎 SECTION: WHAT'S DIFFERENT? */}
-          <Card className="p-6 border border-gray-200 bg-white shadow-xs">
-            <h4 className="text-lg font-black text-navy-900 mb-3 flex items-center gap-2">
-              🔎 What's Different?
-            </h4>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {selectedSchemes.map((s) => (
-                <div key={s.id || s.schemeId} className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-                  <p className="font-extrabold text-navy-900 text-sm mb-2">{s.name}</p>
-                  <ul className="space-y-1.5 text-xs text-navy-700">
-                    <li className="flex items-start gap-1.5">
-                      <span className="font-bold text-primary-600">• Benefit:</span> {s.benefitAmount}
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="font-bold text-primary-600">• Processing:</span> {s.processingTime}
-                    </li>
-                    <li className="flex items-start gap-1.5">
-                      <span className="font-bold text-primary-600">• Method:</span> {s.applicationMethod}
-                    </li>
-                  </ul>
-                </div>
-              ))}
-            </div>
-          </Card>
-
           {/* ✨ SECTION: WHICH MAY BE BETTER FOR YOU? */}
           {rationale && (
             <Card className="p-6 border-2 border-sky-100 bg-gradient-to-br from-sky-50 via-white to-cyan-50 shadow-card">
@@ -506,17 +437,21 @@ export function ComparePage() {
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-navy-900">Which Scheme May Be Better for You?</h3>
-                  <p className="text-xs text-gray-500">Data-backed rationale comparing benefits, processing, and documentation</p>
+                  <h3 className="text-xl font-black text-navy-900">{ui('better')}</h3>
+              <p className="text-xs text-gray-500">{ui('recommendationNote')}</p>
                 </div>
+              </div>
+
+              <div className="mb-5 rounded-xl border border-blue-100 bg-blue-50/70 p-4 text-sm leading-relaxed text-blue-950">
+                {ui('officialCheck')}
               </div>
 
               {rationale.topChoice ? (
                 <div className="mb-6 rounded-xl border border-emerald-200 bg-emerald-50/80 p-4">
                   <span className="text-2xs font-extrabold uppercase tracking-wider text-emerald-800 block mb-1">
-                    🏆 Recommended Top Option
+                    🏆 {ui('suggestedTop')}
                   </span>
-                  <p className="text-lg font-black text-emerald-950">{rationale.topChoice.name}</p>
+                  <p className="text-lg font-black text-emerald-950">{getSchemeCatalogText(rationale.topChoice.name, i18n.language)}</p>
                   <ul className="mt-2 space-y-1 text-xs text-emerald-900 font-semibold">
                     {rationale.topChoiceReasons.map((reason, idx) => (
                       <li key={idx} className="flex items-center gap-1.5">
@@ -529,53 +464,11 @@ export function ComparePage() {
               ) : (
                 <div className="mb-6 rounded-xl border border-sky-200 bg-sky-50/70 p-4">
                   <p className="text-sm font-bold text-navy-900">
-                    Both schemes offer distinct advantages. The better choice depends on what matters most to your needs.
+                    {ui('noAmounts')}
                   </p>
                 </div>
               )}
 
-              {/* Best For Insights Grid */}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {rationale.bestBenefitScheme && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-extrabold uppercase tracking-wider text-primary-700 block mb-1">
-                      Best for Highest Benefit
-                    </span>
-                    <p className="text-xs font-bold text-navy-900">{rationale.bestBenefitScheme.name}</p>
-                    <span className="text-2xs text-gray-500 block mt-1">{rationale.bestBenefitScheme.benefitAmount}</span>
-                  </div>
-                )}
-
-                {rationale.fastProcessingScheme && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-extrabold uppercase tracking-wider text-emerald-700 block mb-1">
-                      Best for Faster Processing
-                    </span>
-                    <p className="text-xs font-bold text-navy-900">{rationale.fastProcessingScheme.name}</p>
-                    <span className="text-2xs text-gray-500 block mt-1">{rationale.fastProcessingScheme.processingTime}</span>
-                  </div>
-                )}
-
-                {rationale.minDocsScheme && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-extrabold uppercase tracking-wider text-blue-700 block mb-1">
-                      Best for Fewer Documents
-                    </span>
-                    <p className="text-xs font-bold text-navy-900">{rationale.minDocsScheme.name}</p>
-                    <span className="text-2xs text-gray-500 block mt-1">{rationale.minDocsScheme.documentsRequired?.length || 0} required docs</span>
-                  </div>
-                )}
-
-                {rationale.easyAppScheme && (
-                  <div className="rounded-xl border border-gray-200 bg-white p-3.5 shadow-2xs">
-                    <span className="text-2xs font-extrabold uppercase tracking-wider text-sky-700 block mb-1">
-                      Best for Easy Application
-                    </span>
-                    <p className="text-xs font-bold text-navy-900">{rationale.easyAppScheme.name}</p>
-                    <span className="text-2xs text-gray-500 block mt-1">{rationale.easyAppScheme.applicationMethod}</span>
-                  </div>
-                )}
-              </div>
             </Card>
           )}
         </div>
@@ -584,8 +477,8 @@ export function ComparePage() {
         <div className="space-y-8 animate-fadeIn">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-gray-200 pb-4">
             <div>
-              <h3 className="text-xl font-black text-navy-900">✨ You May Want to Compare These</h3>
-              <p className="text-xs text-gray-500">We detected schemes with similar benefits, purposes, or beneficiary criteria.</p>
+              <h3 className="text-xl font-black text-navy-900">✨ {ui('similarTitle')}</h3>
+              <p className="text-xs text-gray-500">{ui('similarDescription')}</p>
             </div>
 
             <Button
@@ -594,7 +487,7 @@ export function ComparePage() {
               size="sm"
               className="gap-1.5 cursor-pointer"
             >
-              <Search className="h-4 w-4 text-primary-600" /> Compare Schemes Manually
+              <Search className="h-4 w-4 text-primary-600" /> {ui('manual')}
             </Button>
           </div>
 
@@ -602,8 +495,8 @@ export function ComparePage() {
           {similarityGroups.length === 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-8 text-center shadow-xs">
               <Layers className="mx-auto h-10 w-10 text-gray-400 mb-2" />
-              <h4 className="text-base font-bold text-navy-900">No similar scheme groups detected</h4>
-              <p className="text-xs text-gray-500 mt-1">You can choose schemes manually to run a side-by-side comparison.</p>
+              <h4 className="text-base font-bold text-navy-900">{ui('noGroups')}</h4>
+              <p className="text-xs text-gray-500 mt-1">{ui('manualHint')}</p>
               <Button onClick={() => setManualModalOpen(true)} variant="primary" size="sm" className="mt-4 gap-2">
                 <Search className="h-4 w-4" /> Compare Schemes Manually
               </Button>
@@ -623,12 +516,12 @@ export function ComparePage() {
                         <div className="flex items-center gap-2.5">
                           <span className="text-2xl">{group.icon}</span>
                           <div>
-                            <h4 className="text-base font-extrabold text-navy-900">{group.title}</h4>
-                            <p className="text-2xs text-gray-500">{group.totalCount} similar schemes</p>
+                            <h4 className="text-base font-extrabold text-navy-900">{categoryLabel(group.title)}</h4>
+                  <p className="text-2xs text-gray-500">{ui('similarCount', { count: group.totalCount })}</p>
                           </div>
                         </div>
                         <span className="rounded-full bg-sky-50 text-sky-700 text-2xs font-extrabold px-2.5 py-1 border border-sky-200">
-                          Smart Match
+                          {ui('smartMatch')}
                         </span>
                       </div>
 
@@ -636,8 +529,8 @@ export function ComparePage() {
                       <div className="mb-4 space-y-2.5">
                         {group.schemes.map((s) => (
                           <div key={s.id || s.schemeId} className="rounded-xl bg-gray-50 p-3 border border-gray-100">
-                            <p className="font-extrabold text-navy-900 text-xs">{s.name}</p>
-                            <p className="text-2xs font-semibold text-primary-700 mt-0.5">{s.benefitSummary}</p>
+                            <p className="font-extrabold text-navy-900 text-xs">{getSchemeCatalogText(s.name, i18n.language)}</p>
+                            <p className="text-2xs font-semibold text-primary-700 mt-0.5">{conciseText(getSchemeCatalogText(s.benefitSummary, i18n.language), 140)}</p>
                           </div>
                         ))}
                       </div>
@@ -645,7 +538,7 @@ export function ComparePage() {
                       {/* Similarity Explanation */}
                       <div className="mb-5 rounded-xl bg-sky-50/70 p-3 border border-sky-100">
                         <p className="text-2xs font-extrabold uppercase tracking-wider text-primary-800 mb-1">
-                          Similar because:
+                          {ui('similarBecause')}
                         </p>
                         <ul className="space-y-0.5 text-2xs text-navy-700 font-semibold">
                           {group.reasons.map((reason, idx) => (
@@ -668,7 +561,7 @@ export function ComparePage() {
                       size="md"
                       className="w-full justify-center gap-1.5 shadow-sm"
                     >
-                      Compare These Schemes <ArrowRight className="h-4 w-4" />
+                      {ui('compareThese')} <ArrowRight className="h-4 w-4" />
                     </Button>
                   </div>
                 );
@@ -696,8 +589,8 @@ export function ComparePage() {
                   <Search className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold text-navy-900">Compare Schemes Manually</h3>
-                  <p className="text-xs text-gray-500">Select 2 or 3 schemes to compare side by side</p>
+                  <h3 className="text-lg font-extrabold text-navy-900">{ui('manual')}</h3>
+                  <p className="text-xs text-gray-500">{ui('selectManual')}</p>
                 </div>
               </div>
               <button
@@ -712,13 +605,13 @@ export function ComparePage() {
             <div className="mb-4 rounded-xl bg-sky-50/70 p-3 border border-sky-100">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-extrabold text-primary-900">
-                  Selected Schemes ({selectedIds.length}/3):
+                  {ui('selectedCount', { count: selectedIds.length })}
                 </span>
-                <span className="text-2xs font-medium text-gray-500">Max 3 schemes allowed</span>
+                <span className="text-2xs font-medium text-gray-500">{ui('max')}</span>
               </div>
 
               {selectedSchemes.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No schemes selected yet. Search below to add schemes.</p>
+                <p className="text-xs text-gray-400 italic">{ui('noneSelected')}</p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {selectedSchemes.map((s) => {
@@ -744,7 +637,7 @@ export function ComparePage() {
               <Search className="absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search schemes by name, provider, benefit, or category..."
+                placeholder={ui('searchPlaceholder')}
                 value={modalSearchQuery}
                 onChange={(e) => setModalSearchQuery(e.target.value)}
                 className="w-full rounded-xl border border-gray-300 bg-gray-50/50 py-2.5 pl-10 pr-4 text-xs font-medium text-navy-900 focus:border-primary-500 focus:bg-white focus:outline-hidden"
@@ -759,7 +652,7 @@ export function ComparePage() {
             {/* Scheme Suggestions List */}
             <div className="flex-1 overflow-y-auto space-y-2 pr-1 mb-5 min-h-[160px]">
               {modalSearchResults.length === 0 ? (
-                <p className="text-xs text-gray-500 text-center py-6">No matching schemes found for "{modalSearchQuery}"</p>
+                <p className="text-xs text-gray-500 text-center py-6">{ui('noMatches', { query: modalSearchQuery })}</p>
               ) : (
                 modalSearchResults.map((scheme) => {
                   const sid = scheme.id || scheme.schemeId;
@@ -788,7 +681,7 @@ export function ComparePage() {
                             : 'bg-primary-600 text-white hover:bg-primary-700'
                         }`}
                       >
-                        {isSelected ? '✓ Added' : '+ Add'}
+                        {isSelected ? `✓ ${ui('added')}` : `+ ${ui('add')}`}
                       </button>
                     </div>
                   );
@@ -799,7 +692,7 @@ export function ComparePage() {
             {/* Modal Footer Controls */}
             <div className="flex items-center justify-end gap-2 border-t border-gray-100 pt-4 mt-auto">
               <Button onClick={() => setManualModalOpen(false)} variant="outline" size="sm">
-                Cancel
+                {t('ui.common.cancel')}
               </Button>
               <Button
                 disabled={selectedIds.length < 2}
@@ -812,7 +705,7 @@ export function ComparePage() {
                 className="gap-1.5 shadow-sm"
               >
                 <GitCompare className="h-4 w-4" />
-                Compare {selectedIds.length} Schemes
+                {ui('compareCount', { count: selectedIds.length })}
               </Button>
             </div>
           </div>

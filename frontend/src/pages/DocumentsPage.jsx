@@ -24,6 +24,7 @@ import {
 
 export function DocumentsPage() {
   const { t } = useTranslation();
+  const docText = (key) => t(`ui.documents.${key}`);
   const navigate = useNavigate();
 
   const [docList,      setDocList]      = useState([]);
@@ -105,7 +106,7 @@ export function DocumentsPage() {
       setShowUploadModal(false);
       setEditingDoc(null);
       setDeletingDoc(null);
-      setVerificationError('Your document verification expired. Enter your password again.');
+      setVerificationError(docText('expired'));
     };
     window.addEventListener('document-access-expired', handleExpiredAccess);
     const expiryTimer = window.setTimeout(handleExpiredAccess, 10 * 60 * 1000);
@@ -332,7 +333,7 @@ export function DocumentsPage() {
           }}
           className="gap-2 shrink-0"
         >
-          <LockKeyhole className="h-4 w-4" /> Lock Documents
+          <LockKeyhole className="h-4 w-4" /> {docText('lock')}
         </Button>
       </div>}
 
@@ -370,13 +371,13 @@ export function DocumentsPage() {
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-50 text-primary-700">
             <ShieldCheck className="h-7 w-7" />
           </div>
-          <h2 className="mt-4 text-center text-xl font-extrabold text-navy-900">Verify it’s you</h2>
+          <h2 className="mt-4 text-center text-xl font-extrabold text-navy-900">{docText('verifyTitle')}</h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Enter your account password to view or upload sensitive documents. Verification expires after 10 minutes.
+            {docText('verifyDescription')}
           </p>
           <form onSubmit={handleVerifyIdentity} className="mt-6 space-y-4">
             <div>
-              <label htmlFor="documents-password" className="label-base">Account password</label>
+              <label htmlFor="documents-password" className="label-base">{docText('password')}</label>
               <input
                 id="documents-password"
                 type="password"
@@ -385,7 +386,7 @@ export function DocumentsPage() {
                 value={verificationPassword}
                 onChange={(event) => setVerificationPassword(event.target.value)}
                 className="input-base"
-                placeholder="Enter your password"
+                placeholder={docText('enterPassword')}
               />
             </div>
             {verificationError && (
@@ -394,7 +395,7 @@ export function DocumentsPage() {
               </p>
             )}
             <Button type="submit" disabled={isVerifying || !verificationPassword} className="w-full gap-2">
-              {isVerifying ? 'Verifying…' : <><ShieldCheck className="h-4 w-4" /> Verify and continue</>}
+              {isVerifying ? docText('verifying') : <><ShieldCheck className="h-4 w-4" /> {docText('verify')}</>}
             </Button>
           </form>
         </div>

@@ -58,10 +58,12 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
       {scheme.eligibilityStatus && (
         <div className="space-y-1.5">
           <span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold ${scheme.eligibilityStatus === 'Potentially eligible' ? 'border-emerald-200 bg-emerald-50 text-emerald-800' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
-            {scheme.eligibilityStatus}
+            {scheme.eligibilityStatus === 'Potentially eligible'
+              ? t('ui.status.potential', { defaultValue: scheme.eligibilityStatus })
+              : t('ui.status.needsInfo', { defaultValue: scheme.eligibilityStatus })}
           </span>
           {scheme.missingInformation?.length > 0 && (
-            <p className="text-xs text-slate-600">Still to check: {scheme.missingInformation.join(', ')}.</p>
+            <p className="text-xs text-slate-600">{t('ui.mySchemes.checkRequirements', { items: scheme.missingInformation.join(', ') })}</p>
           )}
         </div>
       )}

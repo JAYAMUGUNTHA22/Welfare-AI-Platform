@@ -186,7 +186,7 @@ export function DashboardLayout({ children, title, subtitle, backTo, onBack }) {
 
             {backTo && (
               <Link to={backTo} onClick={onBack ? (event) => { event.preventDefault(); onBack(); } : undefined} className="mb-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-primary-600">
-                <ChevronLeft className="h-4 w-4" /> {t('common.back', { defaultValue: 'Back' })}
+                <ChevronLeft className="h-4 w-4" /> {t('ui.common.back', { defaultValue: t('common.back', { defaultValue: 'Back' }) })}
               </Link>
             )}
             {title && (

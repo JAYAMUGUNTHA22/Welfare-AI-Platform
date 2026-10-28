@@ -13,6 +13,10 @@ export function MatchScore({ score, size = 'md', showLabel = true, scoreLabel })
   const stroke = score > 50 ? '#059669' : '#dc2626';
   const circumference = 2 * Math.PI * 18;
   const offset = circumference - (score / 100) * circumference;
+  const comparedCount = scoreLabel?.match(/Profile fit · (\d+) criteria compared/i)?.[1];
+  const translatedLabel = comparedCount
+    ? t('ui.common.profileFitScore', { count: comparedCount, defaultValue: scoreLabel })
+    : (scoreLabel || t('scheme.match'));
 
   return (
     <div className="flex flex-col items-center gap-1">
@@ -23,7 +27,7 @@ export function MatchScore({ score, size = 'md', showLabel = true, scoreLabel })
         </svg>
         <span className={`relative font-bold ${color} ${text}`}>{score}%</span>
       </div>
-      {showLabel && <span className={`font-semibold text-gray-500 ${label}`}>{scoreLabel || t('scheme.match')}</span>}
+      {showLabel && <span className={`font-semibold text-gray-500 ${label}`}>{translatedLabel}</span>}
     </div>
   );
 }

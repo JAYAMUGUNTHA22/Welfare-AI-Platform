@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import {
   cancelPendingApplicationApi,
   confirmApplicationApi,
+  getMyApplicationsApi,
   reserveOfflineApplicationApi,
   startApplicationApi,
 } from '@/services/api';
@@ -128,6 +129,11 @@ export function ApplicationTrackingProvider({ children }) {
         navigate(destination || detailPath);
         return;
       }
+      if (error.message?.includes('up to three schemes')) {
+        // Reading scheme details should remain available when tracking is full.
+        navigate(destination || detailPath);
+        return;
+      }
       setInfo({ title: t('applicationTracking.reserveErrorTitle'), message: error.message || t('applicationTracking.saveError') });
     }
   }, [location.pathname, location.search, navigate, t]);
@@ -144,6 +150,23 @@ export function ApplicationTrackingProvider({ children }) {
     if (!applicationLink?.url) return;
 
     const snapshot = getSchemeSnapshot(scheme, applicationLink);
+
+    try {
+      const currentApplications = await getMyApplicationsApi();
+      if ((currentApplications.activeApplicationCount || 0) >= (currentApplications.limit || 3)) {
+        const externalTab = window.open('about:blank', '_blank');
+        if (!externalTab) {
+          setInfo({ title: t('applicationTracking.allowTitle'), message: t('applicationTracking.allowMessage') });
+          return;
+        }
+        externalTab.opener = null;
+        externalTab.location.replace(applicationLink.url);
+        return;
+      }
+    } catch {
+      // Proceed if limit check fails
+    }
+
     const pending = {
       kind: 'external-application',
       scheme: snapshot,
@@ -163,22 +186,28 @@ export function ApplicationTrackingProvider({ children }) {
       return;
     }
     externalTab.opener = null;
+    // A full application-tracking list must not block access to the official
+    // application site. Navigate immediately; tracking is an optional extra.
+    externalTab.location.replace(applicationLink.url);
 
     try {
       const result = await startApplicationApi(snapshot);
       pending.applicationId = result.application._id;
       storeFollowUp(pending);
-      externalTab.location.replace(applicationLink.url);
       // If the user returned before the tracking request finished, no later
       // focus event is guaranteed. Show the prompt as soon as the ID is ready.
-      if (pending.leftApp && document.visibilityState !== 'hidden') {
-        setFollowUp(pending);
-        setActionError('');
-      }
+      // Always show the follow‑up confirmation modal after the tracking request finishes.
+      setFollowUp(pending);
+      setActionError('');
     } catch (error) {
-      externalTab.close();
       storeFollowUp(null);
-      setInfo({ title: t('applicationTracking.startErrorTitle'), message: error.message || t('applicationTracking.saveError') });
+      if (error.message?.includes('up to three schemes')) return;
+      setInfo({
+        title: error.message?.includes('already in your application list')
+          ? t('applicationTracking.alreadyTitle')
+          : t('applicationTracking.startErrorTitle'),
+        message: `${t('applicationTracking.siteOpenedTrackingUnavailable')} ${error.message || t('applicationTracking.saveError')}`,
+      });
     }
   }, [location.pathname, location.search, t]);
 

@@ -35,7 +35,7 @@ export function StatusBadge({ status, label }) {
   // Try to convert label text to camelCase for translation key (e.g. "Document Verification" -> "documentVerification")
   const defaultText = label ?? labels[status] ?? status;
   const key = defaultText.charAt(0).toLowerCase() + defaultText.slice(1).replace(/\s+(.)/g, (_, c) => c.toUpperCase());
-  const text = t(key, { defaultValue: defaultText });
+  const text = t(`ui.statusBadge.${status}`, { defaultValue: t(key, { defaultValue: defaultText }) });
 
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${color}`}>
