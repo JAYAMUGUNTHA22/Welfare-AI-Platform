@@ -558,7 +558,9 @@ resources['বাংলা']  = { translation: benTranslation };
 resources['ગુજરાતી'] = { translation: gujTranslation };
 resources['ಕನ್ನಡ'] = { translation: kanTranslation };
 
-const savedLanguage = typeof window !== 'undefined' ? (localStorage.getItem('userLanguage') || localStorage.getItem('i18nextLng') || 'English') : 'English';
+const supportedLanguages = ['English', 'हिंदी', 'தமிழ்'];
+const requestedLanguage = typeof window !== 'undefined' ? (localStorage.getItem('userLanguage') || localStorage.getItem('i18nextLng') || 'English') : 'English';
+const savedLanguage = supportedLanguages.includes(requestedLanguage) ? requestedLanguage : 'English';
 
 i18n
   .use(initReactI18next)

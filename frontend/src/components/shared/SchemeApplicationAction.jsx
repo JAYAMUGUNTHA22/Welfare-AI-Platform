@@ -2,17 +2,19 @@ import { ArrowRight, ExternalLink, ClipboardList } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { getSchemeApplicationLink } from '@/utils/schemeLinks';
 import { useApplicationTracking } from '@/contexts/ApplicationTrackingContext';
+import { useTranslation } from 'react-i18next';
 
 export function SchemeApplicationAction({
   scheme,
   variant = 'primary',
   size = 'sm',
   className = '',
-  applyLabel = 'Apply Now',
-  unavailableLabel = 'Apply link unavailable',
+  applyLabel,
+  unavailableLabel,
 }) {
   const applicationLink = getSchemeApplicationLink(scheme);
   const { beginOfflineReview, launchApplication } = useApplicationTracking();
+  const { t } = useTranslation();
   const trackExternalLink = (event) => {
     event.preventDefault();
     launchApplication(scheme, applicationLink);
@@ -21,7 +23,7 @@ export function SchemeApplicationAction({
   if (applicationLink?.type === 'offline-instructions') {
     return (
       <Button to={applicationLink.to} onClick={(event) => { event.preventDefault(); beginOfflineReview(scheme, applicationLink.to); }} variant={variant} size={size} className={className}>
-        View offline steps <ClipboardList className="h-4 w-4" />
+        {t('applicationAction.viewOfflineSteps')} <ClipboardList className="h-4 w-4" />
       </Button>
     );
   }
@@ -38,7 +40,7 @@ export function SchemeApplicationAction({
         size={size}
         className={className}
       >
-        {isForm ? 'Download application form' : 'View application instructions'}
+        {isForm ? t('applicationAction.downloadForm') : t('applicationAction.viewInstructions')}
         <ExternalLink className="h-4 w-4" />
       </Button>
     );
@@ -56,7 +58,7 @@ export function SchemeApplicationAction({
         size={size}
         className={className}
       >
-        {offline ? 'Offline application details' : applyLabel}
+        {offline ? t('applicationAction.offlineDetails') : (applyLabel || t('scheme.apply', { defaultValue: 'Apply Now' }))}
         {offline ? <ExternalLink className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
       </Button>
     );
@@ -70,7 +72,7 @@ export function SchemeApplicationAction({
       size={size}
       className={className}
     >
-      {unavailableLabel} <ArrowRight className="h-4 w-4" />
+      {unavailableLabel || t('applicationAction.unavailable')} <ArrowRight className="h-4 w-4" />
     </Button>
   );
 }

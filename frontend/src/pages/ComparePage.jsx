@@ -14,11 +14,12 @@ import { VerificationBadge } from '@/components/shared/VerificationBadge';
 import { getMe, getAllSchemes } from '@/services/api';
 import { schemes as mockSchemes } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
 import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
 
 export function ComparePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [searchParams] = useSearchParams();
 
   const [allSchemesList, setAllSchemesList] = useState([]);
@@ -774,8 +775,8 @@ export function ComparePage() {
                       }`}
                     >
                       <div className="min-w-0 pr-2">
-                        <p className="text-xs font-bold text-navy-900 truncate">{scheme.name}</p>
-                        <p className="text-2xs text-gray-500 truncate">{scheme.provider} • {scheme.benefitSummary}</p>
+                        <p className="text-xs font-bold text-navy-900 truncate">{getSchemeCatalogText(scheme.name, i18n.language)}</p>
+                        <p className="text-2xs text-gray-500 truncate">{getSchemeCatalogText(scheme.provider, i18n.language)} • {getSchemeCatalogText(scheme.benefitSummary, i18n.language)}</p>
                       </div>
 
                       <button

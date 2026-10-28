@@ -4,9 +4,8 @@ import { ShieldCheck, Mail, Phone, Lock, Eye, EyeOff, Globe, AlertCircle, Sparkl
 import { Button } from '@/components/ui/Button';
 import { login } from '@/services/api';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
+import { changePreferredLanguage, normalizeLanguage, supportedLanguages } from '@/utils/languagePreferences';
 
-const SUPPORTED_LANGUAGES = ['English', 'हिंदी', 'मराठी', 'தமிழ்', 'తెలుగు', 'বাংলা', 'ગુજરાતી', 'ಕನ್ನಡ'];
 const DEMO_EMAIL    = 'demo@welfareai.in';
 const DEMO_PASSWORD = 'Demo@1234';
 
@@ -21,9 +20,7 @@ export function LoginPage() {
   const [error, setError]               = useState(null);
   const [loading, setLoading]           = useState(false);
   const [copied, setCopied]             = useState(false);
-  const [language, setLanguage]         = useState(
-    localStorage.getItem('userLanguage') || 'English'
-  );
+  const [language, setLanguage]         = useState(() => normalizeLanguage(localStorage.getItem('userLanguage') || 'English'));
 
   const fillDemo = () => {
     setEmail(DEMO_EMAIL);
@@ -37,8 +34,7 @@ export function LoginPage() {
 
   const handleLanguageChange = (lng) => {
     setLanguage(lng);
-    i18n.changeLanguage(lng);
-    localStorage.setItem('userLanguage', lng);
+    void changePreferredLanguage(lng);
   };
 
   const handleSubmit = async (e) => {
@@ -264,7 +260,7 @@ export function LoginPage() {
                 onChange={(e) => handleLanguageChange(e.target.value)}
                 className="input-base"
               >
-                {SUPPORTED_LANGUAGES.map((l) => (
+                {supportedLanguages.map((l) => (
                   <option key={l} value={l}>
                     {l}
                   </option>

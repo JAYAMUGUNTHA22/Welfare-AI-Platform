@@ -5,8 +5,10 @@ import {
   GitCompare, SlidersHorizontal, MessageSquare, User, LogOut,
   ShieldCheck, Menu, X, ChevronLeft, Globe, ChevronDown
 } from 'lucide-react';
-import { getMe, updateCitizen } from '@/services/api';
+import { getMe } from '@/services/api';
 import { useTranslation } from 'react-i18next';
+import { changePreferredLanguage, normalizeLanguage, supportedLanguages } from '@/utils/languagePreferences';
+import { loadSchemeCatalogTranslations } from '@/utils/schemeCatalogTranslations';
 
 const navItems = [
   { label: 'dashboard', to: '/dashboard', icon: Home },
@@ -26,37 +28,31 @@ export function DashboardLayout({ children, title, subtitle, backTo, onBack }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     async function fetchUser() {
       try {
-        const { user } = await getMe();
-        setUser(user);
+        const { user: currentUser } = await getMe();
+        setUser(currentUser);
+        const browserPreference = localStorage.getItem('userLanguage') || localStorage.getItem('i18nextLng');
+        const preferredLanguage = browserPreference || currentUser.language;
+        if (preferredLanguage) {
+          const language = normalizeLanguage(preferredLanguage);
+          void loadSchemeCatalogTranslations(language).then(() => i18n.changeLanguage(language));
+        }
       } catch (e) {
         console.error('Failed to fetch user in layout', e);
       }
     }
     fetchUser();
-  }, []);
+  }, [i18n]);
 
-  const { t, i18n } = useTranslation();
   const changeLanguage = async (event) => {
     const language = event.target.value;
-    i18n.changeLanguage(language);
-    if (user?._id) {
-      try {
-        await updateCitizen(user._id, { language });
-        setUser((currentUser) => ({ ...currentUser, language }));
-      } catch (error) {
-        console.error('Failed to update language', error);
-      }
-    }
+    const preferredLanguage = await changePreferredLanguage(language, user?._id);
+    if (user?._id) setUser((currentUser) => ({ ...currentUser, language: preferredLanguage }));
   };
-  useEffect(() => {
-    if (user?.language) {
-      i18n.changeLanguage(user.language);
-    }
-  }, [user?.language, i18n]);
 
   return (
     <div className="min-h-screen dashboard-theme">
@@ -135,7 +131,7 @@ export function DashboardLayout({ children, title, subtitle, backTo, onBack }) {
                   aria-label={t('common.changeLanguage')}
                   className="rounded-xl border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-navy-700 focus:border-primary-500 cursor-pointer shadow-2xs"
                 >
-                  {['English', 'हिंदी', 'தமிழ்', 'मराठी', 'తెలుగు', 'বাংলা', 'ગુજરાতી', 'ಕನ್ನಡ'].map((language) => (
+                  {supportedLanguages.map((language) => (
                     <option key={language} value={language}>{language}</option>
                   ))}
                 </select>
