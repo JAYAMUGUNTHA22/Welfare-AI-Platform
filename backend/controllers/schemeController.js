@@ -2,6 +2,38 @@ import { Scheme } from '../models/Scheme.js';
 import { SchemeEligibility } from '../models/SchemeEligibility.js';
 import { SchemeRecommendation } from '../models/SchemeRecommendation.js';
 import { createHash } from 'node:crypto';
+import { getFarmerRecommendations } from '../services/farmerRecommendations.js';
+
+function normalizeRecommendationProfile(profile = {}, user = {}) {
+  return {
+    fullName: String(profile.fullName || user.fullName || ''),
+    state: String(profile.state || ''),
+    age: profile.age === '' || profile.age == null ? null : Number(profile.age),
+    gender: String(profile.gender || ''),
+    occupation: String(profile.occupation || ''),
+    income: String(profile.income || ''),
+    annualIncomeINR: profile.annualIncomeINR === '' || profile.annualIncomeINR == null
+      ? null : Number(profile.annualIncomeINR),
+    socialCategory: String(profile.socialCategory || ''),
+    isDifferentlyAbled: profile.isDifferentlyAbled == null ? null : Boolean(profile.isDifferentlyAbled),
+    isWidow: profile.isWidow == null ? null : Boolean(profile.isWidow),
+    motherWidowed: profile.motherWidowed == null ? null : Boolean(profile.motherWidowed),
+    educationLevel: String(profile.educationLevel || ''),
+    currentCourse: String(profile.currentCourse || ''),
+    employmentStatus: String(profile.employmentStatus || ''),
+    familySize: profile.familySize === '' || profile.familySize == null ? null : Number(profile.familySize),
+    dependants: profile.dependants === '' || profile.dependants == null ? null : Number(profile.dependants),
+    residenceType: String(profile.residenceType || ''),
+    isFarmer: profile.isFarmer == null ? null : Boolean(profile.isFarmer),
+    firstGraduate: profile.firstGraduate == null ? null : Boolean(profile.firstGraduate),
+    specialCircumstances: String(profile.specialCircumstances || ''),
+    district: String(profile.district || ''),
+    landholdingAcres: profile.landholdingAcres === '' || profile.landholdingAcres == null ? null : Number(profile.landholdingAcres),
+    landOwnership: String(profile.landOwnership || ''),
+    cropTypes: Array.isArray(profile.cropTypes) ? profile.cropTypes.map(String) : [],
+    farmingActivities: Array.isArray(profile.farmingActivities) ? profile.farmingActivities.map(String) : [],
+  };
+}
 
 export const saveSchemeRecommendations = async (req, res) => {
   try {
@@ -10,33 +42,12 @@ export const saveSchemeRecommendations = async (req, res) => {
       return res.status(400).json({ message: 'A schemes array is required' });
     }
 
-    const savedProfile = {
-      fullName: String(profile.fullName || req.user.fullName || ''),
-      state: String(profile.state || ''),
-      age: profile.age === '' || profile.age == null ? null : Number(profile.age),
-      gender: String(profile.gender || ''),
-      occupation: String(profile.occupation || ''),
-      income: String(profile.income || ''),
-      annualIncomeINR: profile.annualIncomeINR === '' || profile.annualIncomeINR == null
-        ? null : Number(profile.annualIncomeINR),
-      socialCategory: String(profile.socialCategory || ''),
-      isDifferentlyAbled: profile.isDifferentlyAbled == null ? null : Boolean(profile.isDifferentlyAbled),
-      isWidow: profile.isWidow == null ? null : Boolean(profile.isWidow),
-      motherWidowed: profile.motherWidowed == null ? null : Boolean(profile.motherWidowed),
-      educationLevel: String(profile.educationLevel || ''),
-      currentCourse: String(profile.currentCourse || ''),
-      employmentStatus: String(profile.employmentStatus || ''),
-      familySize: profile.familySize === '' || profile.familySize == null ? null : Number(profile.familySize),
-      dependants: profile.dependants === '' || profile.dependants == null ? null : Number(profile.dependants),
-      residenceType: String(profile.residenceType || ''),
-      isFarmer: profile.isFarmer == null ? null : Boolean(profile.isFarmer),
-      firstGraduate: profile.firstGraduate == null ? null : Boolean(profile.firstGraduate),
-      specialCircumstances: String(profile.specialCircumstances || ''),
-    };
+    const savedProfile = normalizeRecommendationProfile(profile, req.user);
     if ((savedProfile.age !== null && !Number.isFinite(savedProfile.age))
       || (savedProfile.annualIncomeINR !== null && !Number.isFinite(savedProfile.annualIncomeINR))
       || (savedProfile.familySize !== null && !Number.isFinite(savedProfile.familySize))
-      || (savedProfile.dependants !== null && !Number.isFinite(savedProfile.dependants))) {
+      || (savedProfile.dependants !== null && !Number.isFinite(savedProfile.dependants))
+      || (savedProfile.landholdingAcres !== null && !Number.isFinite(savedProfile.landholdingAcres))) {
       return res.status(400).json({ message: 'Age and income must be valid numbers' });
     }
 
@@ -51,13 +62,38 @@ export const saveSchemeRecommendations = async (req, res) => {
       matchTier: String(scheme.matchTier || ''),
       matchReasons: Array.isArray(scheme.matchReasons) ? scheme.matchReasons : [],
       recommendationNote: String(scheme.recommendationNote || ''),
+      providerType: String(scheme.providerType || ''),
+      recommendationGroup: String(scheme.recommendationGroup || scheme.sourceType || ''),
+      officialWebsite: String(scheme.officialWebsite || ''),
+      eligibilityStatus: String(scheme.eligibilityStatus || ''),
+      missingInformation: Array.isArray(scheme.missingInformation) ? scheme.missingInformation : [],
+      eligibility: Array.isArray(scheme.eligibility) ? scheme.eligibility : [],
+      targetBeneficiaries: Array.isArray(scheme.targetBeneficiaries) ? scheme.targetBeneficiaries : [],
+      supportedLocations: Array.isArray(scheme.supportedLocations) ? scheme.supportedLocations : [],
+      supportedCrops: Array.isArray(scheme.supportedCrops) ? scheme.supportedCrops : [],
+      activeStatus: String(scheme.activeStatus || 'unconfirmed'),
     }));
 
-    const recommendation = await SchemeRecommendation.findOneAndUpdate(
-      { citizen: req.user._id, profileFingerprint },
-      { $set: { profile: savedProfile, schemes: savedSchemes, generatedAt: new Date() } },
-      { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
-    );
+    const filter = { citizen: req.user._id, profileFingerprint };
+    const update = { $set: { profile: savedProfile, schemes: savedSchemes, generatedAt: new Date() } };
+    let recommendation;
+    try {
+      recommendation = await SchemeRecommendation.findOneAndUpdate(
+        filter,
+        update,
+        { upsert: true, new: true, runValidators: true, setDefaultsOnInsert: true },
+      );
+    } catch (error) {
+      // React StrictMode and parallel refreshes can race to create this unique
+      // citizen/profile snapshot. If the other request won the insert, update it.
+      if (error.code !== 11000) throw error;
+      recommendation = await SchemeRecommendation.findOneAndUpdate(
+        filter,
+        update,
+        { new: true, runValidators: true },
+      );
+      if (!recommendation) throw error;
+    }
     res.status(200).json({
       message: 'Recommendations saved',
       id: recommendation._id,
@@ -66,6 +102,20 @@ export const saveSchemeRecommendations = async (req, res) => {
   } catch (error) {
     console.error('Error saving scheme recommendations:', error);
     res.status(500).json({ message: 'Failed to save scheme recommendations' });
+  }
+};
+
+export const getSavedSchemeRecommendations = async (req, res) => {
+  try {
+    const citizen = req.user.toObject ? req.user.toObject() : req.user;
+    const profile = normalizeRecommendationProfile(citizen, citizen);
+    const profileFingerprint = createHash('sha256').update(JSON.stringify(profile)).digest('hex');
+    const recommendation = await SchemeRecommendation.findOne({ citizen: req.user._id, profileFingerprint });
+    res.set('Cache-Control', 'no-store');
+    res.json({ schemes: recommendation?.schemes || [], generatedAt: recommendation?.generatedAt || null });
+  } catch (error) {
+    console.error('Error fetching saved recommendations:', error);
+    res.status(500).json({ message: 'Failed to fetch saved recommendations' });
   }
 };
 
@@ -173,6 +223,23 @@ export const recommendSchemes = async (req, res) => {
   } catch (error) {
     console.error('Error recommending schemes:', error);
     res.status(500).json({ message: 'Failed to recommend schemes' });
+  }
+};
+
+export const recommendFarmerSchemes = async (req, res) => {
+  try {
+    const profile = req.user.toObject ? req.user.toObject() : req.user;
+    const programmes = await Scheme.find({
+      $or: [
+        { recommendationGroup: { $in: ['private', 'central'] } },
+        { 'supportMetadata.canonicalData.recommendationGroup': { $in: ['private', 'central'] } },
+      ],
+    });
+    res.set('Cache-Control', 'no-store');
+    res.json(getFarmerRecommendations(profile, programmes));
+  } catch (error) {
+    console.error('Error recommending farmer support programmes:', error);
+    res.status(500).json({ message: 'Failed to recommend farmer support programmes' });
   }
 };
 

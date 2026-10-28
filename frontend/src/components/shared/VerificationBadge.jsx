@@ -1,4 +1,4 @@
-import { ShieldCheck, Building2, HandHeart, CheckCircle2 } from 'lucide-react';
+import { ShieldCheck, Building2, HandHeart, CheckCircle2, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const config = {
@@ -10,12 +10,15 @@ const config = {
 
 export function VerificationBadge({ status, showLabel = true, size = 'sm' }) {
   const { t } = useTranslation();
-  const { labelKey, icon: Icon, color } = config[status];
+  const badge = config[status];
+  const labelKey = badge?.labelKey;
+  const Icon = badge?.icon || Info;
+  const color = badge?.color || 'text-slate-700 bg-slate-50 border-slate-200';
   const sizeClass = size === 'sm' ? 'px-2.5 py-1 text-xs' : 'px-3 py-1.5 text-sm';
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border font-semibold ${color} ${sizeClass}`}>
       <Icon className={size === 'sm' ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-      {showLabel && t(labelKey)}
+      {showLabel && (labelKey ? t(labelKey) : 'Source status unconfirmed')}
     </span>
   );
 }

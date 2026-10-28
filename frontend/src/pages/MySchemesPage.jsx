@@ -8,7 +8,7 @@ import {
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { getMe, saveSchemeRecommendations } from '@/services/api';
+import { getFarmerRecommendationsApi, getMe, getSavedSchemeRecommendationsApi, saveSchemeRecommendations } from '@/services/api';
 import { applications } from '@/data/mockData';
 import { useTranslation } from 'react-i18next';
 import { getSchemeApplicationUrl } from '@/utils/schemeLinks';
@@ -111,10 +111,43 @@ export function MySchemesPage() {
         isFarmer: fetchedUser?.isFarmer,
         firstGraduate: fetchedUser?.firstGraduate,
         specialCircumstances: fetchedUser?.specialCircumstances || '',
+        district: fetchedUser?.district || '',
+        landholdingAcres: fetchedUser?.landholdingAcres,
+        landOwnership: fetchedUser?.landOwnership || '',
+        cropTypes: fetchedUser?.cropTypes || [],
+        farmingActivities: fetchedUser?.farmingActivities || [],
         fullName: fetchedUser?.fullName || 'You',
       };
       setUser(userProfile);
-      const recommendations = await getPersonalizedSchemeRecommendations(userProfile);
+      let recommendations = null;
+      if (localStorage.getItem('token')) {
+        try {
+          const saved = await getSavedSchemeRecommendationsApi();
+          if (Array.isArray(saved?.schemes) && saved.schemes.length) recommendations = saved.schemes;
+        } catch (savedError) {
+          console.warn('Could not load saved recommendations; recalculating them from the current catalogue.', savedError);
+        }
+      }
+      if (!recommendations) recommendations = await getPersonalizedSchemeRecommendations(userProfile);
+      const isFarmer = userProfile.isFarmer === true || /\b(farmer|agriculturist|cultivator|agricultural worker|farm worker)\b/i.test(userProfile.occupation);
+      if (isFarmer && localStorage.getItem('token')) {
+        try {
+          const farmerResults = await getFarmerRecommendationsApi();
+          if (Array.isArray(farmerResults)) {
+            for (const programme of farmerResults) {
+              const normalizedName = String(programme.name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+              const duplicateIndex = recommendations.findIndex((existing) => (
+                (existing.schemeId && programme.schemeId && existing.schemeId === programme.schemeId)
+                || String(existing.name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === normalizedName
+              ));
+              if (duplicateIndex >= 0) recommendations[duplicateIndex] = { ...recommendations[duplicateIndex], ...programme };
+              else recommendations.push(programme);
+            }
+          }
+        } catch (farmerError) {
+          console.warn('Could not load farmer support programmes from the database.', farmerError);
+        }
+      }
       setRecommendedSchemes(recommendations);
       await saveSchemeRecommendations(userProfile, recommendations);
     } catch (err) {
@@ -160,11 +193,22 @@ export function MySchemesPage() {
     filteredSchemes.sort((a, b) => (a.deadline || '').localeCompare(b.deadline || ''));
   }
 
-  let categorySearchResults = categorySchemes.filter((scheme) => {
+  const categoryRecommendations = [...categorySchemes];
+  for (const programme of recommendedSchemes.filter((scheme) => scheme.recommendationGroup && scheme.tags?.includes(selectedCategory))) {
+    const normalizedName = String(programme.name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    const duplicateIndex = categoryRecommendations.findIndex((scheme) => (
+      (scheme.schemeId && programme.schemeId && scheme.schemeId === programme.schemeId)
+      || String(scheme.name || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() === normalizedName
+    ));
+    if (duplicateIndex >= 0) categoryRecommendations[duplicateIndex] = { ...categoryRecommendations[duplicateIndex], ...programme };
+    else categoryRecommendations.push(programme);
+  }
+  let categorySearchResults = categoryRecommendations.filter((scheme) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.trim().toLowerCase();
-    return [scheme.name, scheme.provider, scheme.benefitSummary, scheme.details, scheme.eligibility]
-      .some((value) => value?.toLowerCase().includes(query));
+    const eligibilityText = Array.isArray(scheme.eligibility) ? scheme.eligibility.join(' ') : scheme.eligibility;
+    return [scheme.name, scheme.provider, scheme.benefitSummary, scheme.details, eligibilityText]
+      .some((value) => typeof value === 'string' && value.toLowerCase().includes(query));
   });
   if (sortBy === 'a-z') categorySearchResults = [...categorySearchResults].sort((a, b) => a.name.localeCompare(b.name));
   categorySearchResults = categorySearchResults.slice(0, 10);
@@ -513,9 +557,12 @@ export function MySchemesPage() {
             };
             const assessmentColor = eligibilityAssessment.label === 'Potentially eligible'
               ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-              : eligibilityAssessment.label === 'Needs more information'
+              : eligibilityAssessment.label.startsWith('Needs more information') || eligibilityAssessment.label.startsWith('Potential Match')
                 ? 'border-amber-200 bg-amber-50 text-amber-800'
                 : 'border-slate-200 bg-slate-100 text-slate-700';
+            const providerTypeLabel = scheme.recommendationGroup === 'private'
+              ? `Private Sector · ${scheme.providerType || 'NGO/Foundation'}`
+              : scheme.providerType || (scheme.sourceType === 'central' ? 'Central Government' : 'State Government');
 
             // Check if user has applied
             const app = applications.find(a => a.schemeId === sid || a.schemeName === scheme.name);
@@ -549,6 +596,12 @@ export function MySchemesPage() {
                     </h3>
                   </Link>
                   <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
+                  {providerTypeLabel && (
+                    <span className="mb-3 inline-flex rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-800">{providerTypeLabel}</span>
+                  )}
+                  {scheme.activeStatus === 'unconfirmed' && (
+                    <p className="mb-3 text-xs font-semibold text-amber-800">Availability: verify with the provider.</p>
+                  )}
 
                   {/* Primary Benefit Summary */}
                   <div className="mb-4 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
@@ -563,6 +616,23 @@ export function MySchemesPage() {
                   <p className="mb-4 text-xs text-gray-500">
                     {eligibilityAssessment.reason}
                   </p>
+                  {((Array.isArray(scheme.eligibility) && scheme.eligibility.length > 0) || (typeof scheme.eligibility === 'string' && scheme.eligibility.trim())) && (
+                    <div className="mb-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-700">
+                      <p className="mb-1 font-bold">Eligibility conditions</p>
+                      <ul className="list-disc space-y-1 pl-4">{(Array.isArray(scheme.eligibility) ? scheme.eligibility : [scheme.eligibility]).map((criterion, index) => <li key={index}>{criterion}</li>)}</ul>
+                    </div>
+                  )}
+                  {scheme.supportedLocations?.length > 0 && (
+                    <p className="mb-2 text-xs text-slate-600"><strong>Published locations:</strong> {scheme.supportedLocations.join('; ')}</p>
+                  )}
+                  {scheme.supportedCrops?.length > 0 && (
+                    <p className="mb-3 text-xs text-slate-600"><strong>Published crops:</strong> {scheme.supportedCrops.join(', ')}</p>
+                  )}
+                  {scheme.officialWebsite && (
+                    <a href={scheme.officialWebsite} target="_blank" rel="noopener noreferrer" className="mb-3 inline-flex text-xs font-bold text-primary-700 underline underline-offset-2">
+                      Official website ↗
+                    </a>
+                  )}
 
                   {/* Application Status Badge if exists */}
                   {appStatus && (
@@ -581,7 +651,7 @@ export function MySchemesPage() {
                     View Details
                   </Button>
                   <Button href={applicationUrl || undefined} disabled={!applicationUrl} title={!applicationUrl ? 'Application website is not provided in the scheme data.' : undefined} target="_blank" rel="noopener noreferrer" variant="primary" size="sm" className="flex-1 justify-center gap-1">
-                    {applicationUrl ? 'Apply Now' : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
+                    {applicationUrl ? (scheme.recommendationGroup === 'private' ? 'Provider Website' : scheme.officialWebsite ? 'Official Website' : 'Apply Now') : 'Apply link unavailable'} <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
               </Card>

@@ -77,6 +77,11 @@ export function ProfilePage() {
       isFarmer: profile?.isFarmer,
       firstGraduate: profile?.firstGraduate,
       specialCircumstances: profile?.specialCircumstances || '',
+      district: profile?.district || '',
+      landholdingAcres: profile?.landholdingAcres ?? '',
+      landOwnership: profile?.landOwnership || '',
+      cropTypes: (profile?.cropTypes || []).join(', '),
+      farmingActivities: (profile?.farmingActivities || []).join(', '),
       annualIncomeINR: profile?.annualIncomeINR ?? '',
       socialCategory: profile?.socialCategory || '',
       isDifferentlyAbled: profile?.isDifferentlyAbled,
@@ -107,6 +112,11 @@ export function ProfilePage() {
       isFarmer: editValues.isFarmer == null || editValues.isFarmer === '' ? null : Boolean(editValues.isFarmer),
       firstGraduate: editValues.firstGraduate == null || editValues.firstGraduate === '' ? null : Boolean(editValues.firstGraduate),
       specialCircumstances: editValues.specialCircumstances.trim(),
+      district: editValues.district.trim(),
+      landholdingAcres: editValues.landholdingAcres === '' ? null : Number(editValues.landholdingAcres),
+      landOwnership: editValues.landOwnership.trim(),
+      cropTypes: editValues.cropTypes.split(',').map((value) => value.trim()).filter(Boolean),
+      farmingActivities: editValues.farmingActivities.split(',').map((value) => value.trim()).filter(Boolean),
       annualIncomeINR: editValues.annualIncomeINR === '' ? null : Number(editValues.annualIncomeINR),
       socialCategory: editValues.socialCategory || '',
       isDifferentlyAbled: editValues.isDifferentlyAbled == null ? null : Boolean(editValues.isDifferentlyAbled),
@@ -343,6 +353,24 @@ export function ProfilePage() {
                     </label>
                     <label className="text-sm font-medium text-navy-700">Dependants
                       <input type="number" min="0" value={editValues.dependants ?? ''} onChange={(event) => setEditValues({ ...editValues, dependants: event.target.value })} className="input-base mt-1" />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">District or block
+                      <input value={editValues.district || ''} onChange={(event) => setEditValues({ ...editValues, district: event.target.value })} className="input-base mt-1" maxLength={120} />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">Farm size (acres, optional)
+                      <input type="number" min="0" step="0.01" value={editValues.landholdingAcres ?? ''} onChange={(event) => setEditValues({ ...editValues, landholdingAcres: event.target.value })} className="input-base mt-1" />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">Land ownership or tenancy
+                      <select value={editValues.landOwnership || ''} onChange={(event) => setEditValues({ ...editValues, landOwnership: event.target.value })} className="input-base mt-1">
+                        <option value="">Not specified</option>
+                        {['Owner', 'Tenant', 'Leased', 'Sharecropper', 'Other'].map((type) => <option key={type} value={type}>{type}</option>)}
+                      </select>
+                    </label>
+                    <label className="text-sm font-medium text-navy-700">Crops grown (comma-separated)
+                      <input value={editValues.cropTypes || ''} onChange={(event) => setEditValues({ ...editValues, cropTypes: event.target.value })} className="input-base mt-1" maxLength={250} placeholder="For example, paddy, chilli" />
+                    </label>
+                    <label className="text-sm font-medium text-navy-700 sm:col-span-2">Farming activities (optional)
+                      <input value={editValues.farmingActivities || ''} onChange={(event) => setEditValues({ ...editValues, farmingActivities: event.target.value })} className="input-base mt-1" maxLength={250} placeholder="For example, crop cultivation, dairy" />
                     </label>
                     {[
                       ['isFarmer', 'Are you a farmer or agricultural worker?'],

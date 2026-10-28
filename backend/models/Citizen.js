@@ -53,6 +53,11 @@ const citizenSchema = new mongoose.Schema(
     isFarmer: { type: Boolean, default: undefined },
     firstGraduate: { type: Boolean, default: undefined },
     specialCircumstances: { type: String, trim: true, maxlength: 500 },
+    district: { type: String, trim: true, maxlength: 120 },
+    landholdingAcres: { type: Number, min: 0 },
+    landOwnership: { type: String, trim: true, maxlength: 80 },
+    cropTypes: [{ type: String, trim: true }],
+    farmingActivities: [{ type: String, trim: true }],
     occupation: {
       type: String,
       trim: true,

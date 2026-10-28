@@ -13,7 +13,7 @@ import { useEffect, useState } from "react";
 import { DashboardCard } from "@/components/shared/DashboardCard";
 import { SchemeCard } from "@/components/shared/SchemeCard";
 import { Card } from "@/components/ui/Card";
-import { getDashboardData, getDocumentsApi, getMe, saveSchemeRecommendations } from "@/services/api";
+import { getDashboardData, getFarmerRecommendationsApi, getMe, saveSchemeRecommendations } from "@/services/api";
 import { useTranslation } from "react-i18next";
 import { getPersonalizedSchemeRecommendations } from "@/data/myschemeDataset";
 
@@ -34,27 +34,14 @@ export function DashboardPage() {
           console.warn("Could not read the cached user profile", error);
         }
 
-        const [dashResult, userResult, documentsResult] = await Promise.allSettled([
+        const [dashResult, userResult] = await Promise.allSettled([
           getDashboardData(),
           getMe(),
-          getDocumentsApi(),
         ]);
         if (dashResult.status === "fulfilled") {
-          const documents = documentsResult.status === "fulfilled"
-            ? documentsResult.value?.documents
-            : null;
-          setDashboardData({
-            ...dashResult.value,
-            documentsCount: Array.isArray(documents)
-              ? documents.length
-              : dashResult.value?.documentsCount ?? 0,
-          });
+          setDashboardData(dashResult.value);
         } else {
           console.warn("Could not load dashboard summary data", dashResult.reason);
-          const documents = documentsResult.status === "fulfilled"
-            ? documentsResult.value?.documents
-            : null;
-          if (Array.isArray(documents)) setDashboardData({ documentsCount: documents.length });
         }
 
         const currentUser = userResult.status === "fulfilled"
@@ -64,7 +51,27 @@ export function DashboardPage() {
           console.warn("Could not refresh the user profile; using the saved profile if available.", userResult.reason);
         }
         setUser(currentUser);
-        const recommendations = await getPersonalizedSchemeRecommendations(currentUser || {}, 4, { perSource: true });
+        let recommendations = await getPersonalizedSchemeRecommendations(currentUser || {}, 4, { perSource: true });
+        const isFarmer = currentUser?.isFarmer === true
+          || /\b(farmer|agriculturist|cultivator|agricultural worker|farm worker)\b/i.test(currentUser?.occupation || "");
+        if (isFarmer && localStorage.getItem("token")) {
+          try {
+            const farmerProgrammes = await getFarmerRecommendationsApi();
+            if (Array.isArray(farmerProgrammes)) {
+              for (const programme of farmerProgrammes) {
+                const normalizedName = String(programme.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+                const duplicateIndex = recommendations.findIndex((existing) => (
+                  (existing.schemeId && programme.schemeId && existing.schemeId === programme.schemeId)
+                  || String(existing.name || "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() === normalizedName
+                ));
+                if (duplicateIndex >= 0) recommendations[duplicateIndex] = { ...recommendations[duplicateIndex], ...programme };
+                else recommendations.push(programme);
+              }
+            }
+          } catch (farmerError) {
+            console.warn("Could not load farmer programmes for dashboard recommendations.", farmerError);
+          }
+        }
         setSchemes(recommendations);
         await saveSchemeRecommendations(currentUser || {}, recommendations);
       } catch (err) {
@@ -84,7 +91,7 @@ export function DashboardPage() {
   const recommendationSections = [
     { key: 'state', title: `${user?.state || 'State'} Government Recommendations`, schemes: schemes.filter((scheme) => scheme.sourceType === 'state').slice(0, 4) },
     { key: 'central', title: 'Central Government Recommendations', schemes: schemes.filter((scheme) => scheme.sourceType === 'central').slice(0, 4) },
-    { key: 'private', title: 'Private / Corporate Assistance', schemes: schemes.filter((scheme) => scheme.sourceType === 'private').slice(0, 4) },
+    { key: 'private', title: 'Private-Sector and Foundation Recommendations', schemes: schemes.filter((scheme) => scheme.sourceType === 'private') },
   ];
   const visibleRecommendationCount = recommendationSections.reduce((count, section) => count + section.schemes.length, 0);
 
@@ -151,7 +158,21 @@ export function DashboardPage() {
             </div>
             {section.schemes.length ? (
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-3">
-                {section.schemes.map((scheme) => <SchemeCard key={scheme.schemeId || scheme.id} scheme={scheme} />)}
+                {section.schemes.map((scheme) => (
+                  <div key={scheme.schemeId || scheme.id} className="flex flex-col gap-2">
+                    <span className="w-fit rounded-full border border-sky-100 bg-white px-2.5 py-1 text-xs font-semibold text-sky-800">
+                      {section.key === 'private'
+                        ? (scheme.providerType || 'Private Sector / NGO/Foundation')
+                        : section.key === 'central' ? 'Central Scheme' : 'State Scheme'}
+                    </span>
+                    <SchemeCard scheme={scheme} />
+                    {scheme.officialWebsite && (
+                      <a className="text-sm font-semibold text-primary-700 hover:underline" href={scheme.officialWebsite} target="_blank" rel="noopener noreferrer">
+                        Official programme website <ArrowRight className="inline h-3.5 w-3.5" />
+                      </a>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
               <p className="dashboard-empty-card rounded-2xl border bg-white p-4 text-sm text-slate-600">
