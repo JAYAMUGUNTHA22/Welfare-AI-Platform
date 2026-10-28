@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { useTranslation } from 'react-i18next';
+import { changePreferredLanguage, supportedLanguages } from '@/utils/languagePreferences';
 
 export function Navbar() {
   const { t, i18n } = useTranslation();
@@ -31,7 +32,7 @@ export function Navbar() {
     navigate('/');
   };
 
-  const supportedLanguages = ['English', 'हिंदी', 'தமிழ்', 'मराठी', 'తెలుగు', 'বাংলা', 'ગુજરાતી', 'ಕನ್ನಡ'];
+  const handleLanguageChange = (event) => { void changePreferredLanguage(event.target.value); };
   const navLinks = [
     { label: "mySchemes", to: "/my-schemes" },
     { label: "findSchemes", to: "/schemes" },
@@ -73,9 +74,9 @@ export function Navbar() {
             <Globe className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-sky-600" />
             <select
               value={i18n.language}
-              onChange={(e) => i18n.changeLanguage(e.target.value)}
+              onChange={handleLanguageChange}
               className="rounded-lg border border-sky-100 bg-white py-1.5 pl-8 pr-3 text-sm font-medium text-slate-700 focus:border-sky-400 cursor-pointer"
-              aria-label="Select language"
+              aria-label={t('common.changeLanguage', { defaultValue: 'Select language' })}
             >
               {supportedLanguages.map((l) => (
                 <option key={l} value={l}>
@@ -141,9 +142,9 @@ export function Navbar() {
               <Globe className="h-4 w-4 text-sky-600" />
               <select
                 value={i18n.language}
-                onChange={(e) => i18n.changeLanguage(e.target.value)}
+                onChange={handleLanguageChange}
                 className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm"
-                aria-label="Select language"
+                aria-label={t('common.changeLanguage', { defaultValue: 'Select language' })}
               >
                 {supportedLanguages.map((l) => (
                   <option key={l} value={l}>

@@ -14,6 +14,7 @@ import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAc
 import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
 import { SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 import { getPersonalizedSchemeRecommendations, loadMyschemeSchemes } from '@/data/myschemeDataset';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 
 const visibleCategories = [
   { id: 'agriculture-rural-environment', label: 'Agriculture', description: 'Support for farmers and rural communities', icon: Wheat },
@@ -26,7 +27,7 @@ const visibleCategories = [
 ];
 
 export function MySchemesPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const [user, setUser] = useState(null);
   const [recommendedSchemes, setRecommendedSchemes] = useState([]);
@@ -450,23 +451,23 @@ export function MySchemesPage() {
                   <div>
                     <div className="mb-4 flex items-center justify-between gap-2 border-b border-sky-100 pb-3">
                       <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-2xs font-black uppercase text-sky-700">{categoryLabel}</span>
-                      {scheme.level && <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-2xs font-semibold text-cyan-800">{scheme.level} scheme</span>}
+                      {scheme.level && <span className="rounded-full bg-cyan-50 px-2.5 py-1 text-2xs font-semibold text-cyan-800">{getSchemeCatalogText(scheme.level, i18n.language)} {t('categoryPage.schemes')}</span>}
                     </div>
                     <SchemeDetailsLink scheme={scheme} to={`/schemes/${sid}`} className="group block mb-1">
-                      <h3 className="text-lg font-extrabold text-slate-800 transition-colors group-hover:text-sky-700">{scheme.name}</h3>
+                      <h3 className="text-lg font-extrabold text-slate-800 transition-colors group-hover:text-sky-700">{getSchemeCatalogText(scheme.name, i18n.language)}</h3>
                     </SchemeDetailsLink>
-                    <p className="mb-4 text-xs font-medium text-slate-500">{scheme.provider}</p>
+                    <p className="mb-4 text-xs font-medium text-slate-500">{getSchemeCatalogText(scheme.provider, i18n.language)}</p>
                     <div className="mb-3 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
                       <p className="mb-1 text-2xs font-black uppercase tracking-wider text-sky-700">Benefit</p>
-                      <p className="line-clamp-4 text-xs font-semibold leading-relaxed text-slate-700">{scheme.benefitSummary || 'See scheme details for information about the benefits.'}</p>
+                      <p className="line-clamp-4 text-xs font-semibold leading-relaxed text-slate-700">{getSchemeCatalogText(scheme.benefitSummary || 'See scheme details for information about the benefits.', i18n.language)}</p>
                     </div>
                     {scheme.eligibility && (
                       <div className="mb-4 rounded-xl bg-slate-50 p-3.5">
                         <p className="mb-1 text-2xs font-black uppercase tracking-wider text-slate-500">Eligibility</p>
-                        <p className="line-clamp-4 text-xs leading-relaxed text-slate-600">{scheme.eligibility}</p>
+                        <p className="line-clamp-4 text-xs leading-relaxed text-slate-600">{getSchemeCatalogText(scheme.eligibility, i18n.language)}</p>
                       </div>
                     )}
-                    {scheme.details && <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-slate-500">{scheme.details}</p>}
+                    {scheme.details && <p className="mb-4 line-clamp-3 text-xs leading-relaxed text-slate-500">{getSchemeCatalogText(scheme.details, i18n.language)}</p>}
                   </div>
                   <div className="mt-auto flex gap-2 border-t border-slate-100 pt-3">
                     <SchemeDetailsButton scheme={scheme} to={`/schemes/${sid}`} variant="outline" size="sm" className="flex-1 justify-center">View Details</SchemeDetailsButton>
@@ -512,10 +513,10 @@ export function MySchemesPage() {
                     className="group block mb-1"
                   >
                     <h3 className="text-lg font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors">
-                      {scheme.name}
+                      {getSchemeCatalogText(scheme.name, i18n.language)}
                     </h3>
                   </SchemeDetailsLink>
-                  <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
+                  <p className="text-xs font-medium text-gray-500 mb-3">{getSchemeCatalogText(scheme.provider, i18n.language)}</p>
 
                   {/* Primary Benefit Summary */}
                   <div className="mb-4 rounded-xl border border-sky-100 bg-gradient-to-r from-sky-50 to-cyan-50 p-3.5">
@@ -523,7 +524,7 @@ export function MySchemesPage() {
                       Benefit:
                     </span>
                     <p className="line-clamp-3 text-xs font-bold leading-snug text-navy-900">
-                      {scheme.benefitSummary || 'See scheme details for information about the benefits.'}
+                      {getSchemeCatalogText(scheme.benefitSummary || 'See scheme details for information about the benefits.', i18n.language)}
                     </p>
                   </div>
 

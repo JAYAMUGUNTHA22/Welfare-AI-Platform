@@ -13,6 +13,7 @@ import { MatchScore } from '@/components/shared/MatchScore';
 import { schemes } from '@/data/mockData';
 import { getAllSchemes, getDocumentsApi } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
+import { getSchemeCatalogText, getSchemeCategoryLabel } from '@/utils/schemeCatalogTranslations';
 import { loadMyschemeSchemes } from '@/data/myschemeDataset';
 
 const schemeTranslationKeys = { 'pm-scholarship': 'pmScholarship', 'ayushman-bharat': 'ayushmanBharat', 'pm-kisan': 'pmKisan', 'pmay-housing': 'pmayHousing', 'atal-pension-yojana': 'atalPension', 'mudra-loan': 'mudraLoan', 'stand-up-india': 'standUpIndia', mgnrega: 'mgnrega', 'tata-skills': 'tataSkills' };
@@ -130,15 +131,22 @@ export function SchemeDetailsPage() {
 
   const schemeId = scheme.schemeId || scheme.id;
   const translated = getSchemeTranslation(schemeId, i18n.language, scheme);
-  const translateScheme = (value) => t(`schemeData.${value}`, { defaultValue: value || '' });
+  const translateScheme = (value) => getSchemeCatalogText(value || '', i18n.language);
   const name = translated.name || t(`schemeNames.${schemeTranslationKeys[schemeId] || schemeId}`, { defaultValue: translateScheme(scheme.name) });
-  const summary = translated.description || scheme.details || scheme.overview || scheme.shortExplanation;
-  const benefits = getDetailText(scheme.benefitSummary || scheme.benefits || scheme.benefitAmount).flatMap((text) => text.split(/\r?\n|;|•|(?<=[.!?])\s+(?=[A-Z₹])/).map((item) => item.trim()).filter(Boolean));
-  const criteria = scheme.eligibilityCriteria?.length
-    ? scheme.eligibilityCriteria.map((criterion) => criterion.criterion_text || criterion).filter(Boolean)
-    : getDetailText(scheme.eligibility);
-  const applicationSteps = getApplicationSteps(scheme.applicationProcess || scheme.applicationMethod);
-  const requiredDocuments = getDocumentItems(scheme.documentsRequired);
+  const summary = translated.description || translateScheme(scheme.details || scheme.overview || scheme.shortExplanation);
+  const benefits = getDetailText(translateScheme(scheme.benefitSummary || scheme.benefits || scheme.benefitAmount)).flatMap((text) => text.split(/\r?\n|;|•|(?<=[.!?])\s+(?=[A-Z₹])/).map((item) => item.trim()).filter(Boolean));
+  // Use translated fields if available, otherwise fallback to original data
+  const criteria = translated.eligibility
+    ? getDetailText(translated.eligibility)
+    : scheme.eligibilityCriteria?.length
+      ? scheme.eligibilityCriteria.map((criterion) => translateScheme(criterion.criterion_text || criterion)).filter(Boolean)
+      : getDetailText(translateScheme(scheme.eligibility));
+  const applicationSteps = translated.applicationProcess
+    ? getApplicationSteps(translated.applicationProcess)
+    : getApplicationSteps(translateScheme(scheme.applicationProcess || scheme.applicationMethod));
+  const requiredDocuments = translated.documentsRequired
+    ? getDocumentItems(translated.documentsRequired)
+    : getDocumentItems(translateScheme(scheme.documentsRequired));
 
   return (
     <DashboardLayout backTo="/my-schemes" onBack={() => handleSchemeDetailsBack(scheme, '/my-schemes')}>
@@ -151,7 +159,7 @@ export function SchemeDetailsPage() {
             {scheme.schemeCategories?.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-2">
                 {scheme.schemeCategories.map((category) => (
-                  <span key={category} className="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">{category}</span>
+                  <span key={category} className="rounded-full bg-primary-50 px-3 py-1 text-xs font-semibold text-primary-700">{getSchemeCategoryLabel(category, i18n.language)}</span>
                 ))}
               </div>
             )}
@@ -166,7 +174,7 @@ export function SchemeDetailsPage() {
         </div>
         <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           {!scheme.myschemeSlug && <Button to={`/schemes/${schemeId}/eligibility`} size="lg" className="flex-1">{t('scheme.checkEligibility')} <ArrowRight className="h-5 w-5" /></Button>}
-          <SchemeApplicationAction scheme={scheme} applyLabel="Apply on original website" unavailableLabel="Original application link unavailable" variant="outline" size="lg" className="flex-1" />
+          <SchemeApplicationAction scheme={scheme} applyLabel={t('applicationAction.applyOriginalWebsite')} unavailableLabel={t('applicationAction.unavailable')} variant="outline" size="lg" className="flex-1" />
         </div>
       </div>
 
@@ -179,7 +187,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-3 flex items-center gap-2">
                   <FileText className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">About this scheme</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.about', { defaultValue: 'About this scheme' })}</h2>
                 </div>
                 <p className="whitespace-pre-line text-base leading-relaxed text-slate-900">{summary}</p>
               </Card>
@@ -188,7 +196,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <Wallet className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">Benefits</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.benefits', { defaultValue: 'Benefits' })}</h2>
                 </div>
                 <ul className="space-y-3">
                   {benefits.map((benefit, index) => (
@@ -225,7 +233,7 @@ export function SchemeDetailsPage() {
               <Card id="application-process" className="scroll-mt-8 p-6">
                 <div className="mb-4 flex items-center gap-2">
                   <ClipboardList className="h-5 w-5 text-primary-600" />
-                  <h2 className="text-lg font-bold text-navy-900">How to apply</h2>
+                  <h2 className="text-lg font-bold text-navy-900">{t('scheme.howToApply', { defaultValue: 'How to apply' })}</h2>
                 </div>
                 <ol className="space-y-3">
                   {applicationSteps.map((step, index) => (
@@ -241,7 +249,7 @@ export function SchemeDetailsPage() {
               <Card className="p-6">
                 <div className="mb-5 flex items-center gap-4 rounded-2xl bg-sky-100 px-5 py-4">
                   <FileText className="h-9 w-9 shrink-0 text-blue-800" />
-                  <h2 className="text-2xl font-extrabold text-blue-900">Required Documents</h2>
+                  <h2 className="text-2xl font-extrabold text-blue-900">{t('scheme.requiredDocuments', { defaultValue: 'Required Documents' })}</h2>
                 </div>
                 {!documentsLoading && !documentsUnlocked && <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-950">Unlock your document vault to compare these requirements with your uploaded files. Your files stay private.</p>}
                 <ul className="grid grid-cols-1 gap-3">

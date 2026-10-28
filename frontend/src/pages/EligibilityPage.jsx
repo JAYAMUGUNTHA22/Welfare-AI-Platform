@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { MatchScore } from '@/components/shared/MatchScore';
 import { getMe, getRecommendedSchemes } from '@/services/api';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 import { useTranslation } from 'react-i18next';
 
 const categoryRules = {
@@ -91,7 +92,7 @@ export function EligibilityPage() {
           <div className="flex items-start gap-3">
             <CheckCircle2 className="mt-0.5 h-6 w-6 shrink-0 text-success-600" />
             <div>
-              <h2 className="font-bold text-navy-900">{translated.name || t(`schemeNames.${schemeTranslationKeys[scheme.schemeId || scheme.id] || scheme.schemeId || scheme.id}`, { defaultValue: scheme.name })}</h2>
+              <h2 className="font-bold text-navy-900">{translated.name || t(`schemeNames.${schemeTranslationKeys[scheme.schemeId || scheme.id] || scheme.schemeId || scheme.id}`, { defaultValue: getSchemeCatalogText(scheme.name, i18n.language) })}</h2>
               <p className="mt-1 text-sm leading-relaxed text-navy-700">{t('eligibility.profileMatches')}</p>
             </div>
           </div>
@@ -109,7 +110,7 @@ export function EligibilityPage() {
             <FileText className="mt-0.5 h-5 w-5 shrink-0 text-primary-600" />
             <div>
               <h2 className="font-bold text-navy-900">{t('eligibility.prepareTitle')}</h2>
-              <p className="mt-1 text-sm leading-relaxed text-gray-600">{t('eligibility.prepareText', { provider: translated.provider || t(`schemeData.${scheme.provider}`, { defaultValue: scheme.provider }) })}</p>
+              <p className="mt-1 text-sm leading-relaxed text-gray-600">{t('eligibility.prepareText', { provider: translated.provider || getSchemeCatalogText(scheme.provider, i18n.language) })}</p>
             </div>
           </div>
         </Card>

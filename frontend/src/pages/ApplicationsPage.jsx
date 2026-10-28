@@ -4,6 +4,8 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { getMyApplicationsApi } from '@/services/api';
+import { useTranslation } from 'react-i18next';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 
 function formatDate(value) {
   if (!value) return '—';
@@ -12,6 +14,7 @@ function formatDate(value) {
 }
 
 export function ApplicationsPage() {
+  const { t, i18n } = useTranslation();
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -46,33 +49,33 @@ export function ApplicationsPage() {
         <div className="pointer-events-none absolute bottom-[-5rem] right-1/4 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl" />
         <div className="relative flex flex-col justify-between gap-6 md:flex-row md:items-end">
           <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-100"><Sparkles className="h-3.5 w-3.5" /> YOUR SCHEME PORTFOLIO</div>
-            <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">My Applications</h1>
-            <p className="mt-2 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">A clear record of the government schemes you’ve confirmed applying for.</p>
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-cyan-100"><Sparkles className="h-3.5 w-3.5" /> {t('applicationsPage.eyebrow')}</div>
+            <h1 className="mt-4 text-3xl font-extrabold tracking-tight sm:text-4xl">{t('applicationsPage.title')}</h1>
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-blue-100 sm:text-base">{t('applicationsPage.subtitle')}</p>
           </div>
           <div className="flex gap-3">
-            <div className="min-w-32 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"><p className="text-3xl font-extrabold">{applications.length}</p><p className="mt-0.5 text-xs text-blue-100">Schemes applied</p></div>
-            <div className="min-w-36 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"><p className="text-3xl font-extrabold">{benefitCount}</p><p className="mt-0.5 text-xs text-blue-100">Benefits listed</p></div>
+            <div className="min-w-32 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"><p className="text-3xl font-extrabold">{applications.length}</p><p className="mt-0.5 text-xs text-blue-100">{t('applicationsPage.schemesApplied')}</p></div>
+            <div className="min-w-36 rounded-2xl border border-white/15 bg-white/10 px-4 py-3 backdrop-blur-sm"><p className="text-3xl font-extrabold">{benefitCount}</p><p className="mt-0.5 text-xs text-blue-100">{t('applicationsPage.benefitsListed')}</p></div>
           </div>
         </div>
       </section>
 
       {error && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</div>}
       {loading ? (
-        <Card className="p-10 text-center text-slate-500"><RotateCw className="mx-auto mb-3 h-6 w-6 animate-spin" />Loading your applications…</Card>
+        <Card className="p-10 text-center text-slate-500"><RotateCw className="mx-auto mb-3 h-6 w-6 animate-spin" />{t('applicationsPage.loading')}</Card>
       ) : applications.length === 0 ? (
         <Card className="relative overflow-hidden px-6 py-14 text-center">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-cyan-400 via-blue-500 to-violet-500" />
           <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-blue-100 text-sky-700 shadow-inner"><FileText className="h-8 w-8" /></span>
-          <h2 className="mt-5 text-xl font-extrabold text-slate-900">Your application story starts here</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-500">Schemes will appear once you confirm that you submitted an application. Only confirmed applications are shown on this page.</p>
-          <Button to="/my-schemes" className="mt-6">Explore my schemes <ArrowRight className="h-4 w-4" /></Button>
+          <h2 className="mt-5 text-xl font-extrabold text-slate-900">{t('applicationsPage.noApplicationsTitle')}</h2>
+          <p className="mx-auto mt-2 max-w-lg text-sm leading-relaxed text-slate-500">{t('applicationsPage.noApplicationsBody')}</p>
+          <Button to="/my-schemes" className="mt-6">{t('applicationsPage.exploreSchemes')} <ArrowRight className="h-4 w-4" /></Button>
         </Card>
       ) : (
         <>
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">Your progress</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">Applied schemes <span className="text-slate-400">({applications.length})</span></h2></div>
-            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" /> Confirmed by you</div>
+            <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">{t('applicationsPage.progress')}</p><h2 className="mt-1 text-xl font-extrabold text-slate-900">{t('applicationsPage.appliedSchemes')} <span className="text-slate-400">({applications.length})</span></h2></div>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800"><CheckCircle2 className="h-4 w-4" /> {t('applicationsPage.confirmedByYou')}</div>
           </div>
           <div className="grid gap-5 lg:grid-cols-2 2xl:grid-cols-3">
             {applications.map((application, index) => {
@@ -82,29 +85,29 @@ export function ApplicationsPage() {
                   <div className="flex flex-1 flex-col p-5 sm:p-6">
                     <div className="flex items-start justify-between gap-3">
                       <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-100 to-indigo-100 text-sky-700 ring-1 ring-sky-200/70"><FileCheck2 className="h-6 w-6" /></span>
-                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-800"><CheckCircle2 className="h-3.5 w-3.5" /> Applied</span>
+                      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-emerald-800"><CheckCircle2 className="h-3.5 w-3.5" /> {t('applicationsPage.applied')}</span>
                     </div>
-                    <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.16em] text-sky-700">Application {String(index + 1).padStart(2, '0')}</p>
-                    <h3 className="mt-1.5 text-lg font-extrabold leading-snug text-slate-900">{application.schemeName}</h3>
-                    <p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><Building2 className="h-4 w-4 shrink-0 text-slate-400" />{application.provider || 'Government Scheme'}</p>
+                    <p className="mt-5 text-[11px] font-bold uppercase tracking-[0.16em] text-sky-700">{t('applicationsPage.application')} {String(index + 1).padStart(2, '0')}</p>
+                    <h3 className="mt-1.5 text-lg font-extrabold leading-snug text-slate-900">{getSchemeCatalogText(application.schemeName, i18n.language)}</h3>
+                    <p className="mt-2 flex items-center gap-2 text-sm text-slate-500"><Building2 className="h-4 w-4 shrink-0 text-slate-400" />{getSchemeCatalogText(application.provider || 'Government Scheme', i18n.language)}</p>
 
                     <div className="mt-5 grid grid-cols-2 gap-3">
-                      <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Submitted</p><p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-800"><CalendarDays className="h-3.5 w-3.5 text-sky-600" />{formatDate(application.submittedAt)}</p></div>
-                      <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Application method</p><p className="mt-1 text-sm font-bold capitalize text-slate-800">{application.applicationMethod || 'Not specified'}</p></div>
+                      <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t('applicationsPage.submitted')}</p><p className="mt-1 flex items-center gap-1.5 text-sm font-bold text-slate-800"><CalendarDays className="h-3.5 w-3.5 text-sky-600" />{formatDate(application.submittedAt)}</p></div>
+                      <div className="rounded-xl bg-slate-50 p-3"><p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">{t('applicationsPage.applicationMethod')}</p><p className="mt-1 text-sm font-bold capitalize text-slate-800">{application.applicationMethod || '—'}</p></div>
                     </div>
 
-                    {application.benefitSummary && <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-slate-600">{application.benefitSummary}</p>}
+                    {application.benefitSummary && <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-slate-600">{t(`schemeData.${application.benefitSummary}`, { defaultValue: application.benefitSummary })}</p>}
 
                     <div className="mt-auto flex flex-wrap items-center gap-3 border-t border-slate-100 pt-5 mt-5">
-                      {application.applicationUrl && <a href={application.applicationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 hover:text-sky-900">Official site <ExternalLink className="h-3.5 w-3.5" /></a>}
-                      <Button to="/benefits" variant="outline" size="sm" className="ml-auto">View benefits <ArrowUpRight className="h-4 w-4" /></Button>
+                      {application.applicationUrl && <a href={application.applicationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-sky-700 hover:text-sky-900">{t('applicationsPage.officialSite')} <ExternalLink className="h-3.5 w-3.5" /></a>}
+                      <Button to="/benefits" variant="outline" size="sm" className="ml-auto">{t('applicationsPage.viewBenefits')} <ArrowUpRight className="h-4 w-4" /></Button>
                     </div>
                   </div>
                 </Card>
               );
             })}
           </div>
-          <p className="mt-5 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-xs leading-relaxed text-amber-900"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />Application confirmations are self-reported. Check with the relevant department for official application status and benefit decisions.</p>
+          <p className="mt-5 flex items-start gap-2 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-xs leading-relaxed text-amber-900"><span className="mt-0.5 h-2 w-2 shrink-0 rounded-full bg-amber-500" />{t('applicationsPage.footnote')}</p>
         </>
       )}
     </DashboardLayout>

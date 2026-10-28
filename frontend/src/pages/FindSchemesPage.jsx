@@ -16,6 +16,7 @@ import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAc
 import { SchemeDetailsButton } from '@/components/shared/SchemeDetailsLink';
 import { SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 import { getPersonalizedSchemeRecommendations } from '@/data/myschemeDataset';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 
 const allCategoriesList = [
   { id: 'education', name: 'Education' },
@@ -480,10 +481,10 @@ export function FindSchemesPage() {
                           className="group block mb-1"
                         >
                           <h3 className="text-lg font-extrabold text-navy-900 group-hover:text-primary-600 transition-colors">
-                            {scheme.name}
+                            {getSchemeCatalogText(scheme.name, i18n.language)}
                           </h3>
                         </SchemeDetailsLink>
-                        <p className="text-xs font-medium text-gray-500 mb-3">{scheme.provider}</p>
+                        <p className="text-xs font-medium text-gray-500 mb-3">{getSchemeCatalogText(scheme.provider, i18n.language)}</p>
 
                         {/* Key Benefit Highlight Box */}
                         <div className="mb-4 rounded-xl border border-primary-100 bg-gradient-to-r from-sky-50 to-primary-50/40 p-3.5">
@@ -491,7 +492,7 @@ export function FindSchemesPage() {
                             Primary Benefit:
                           </span>
                           <p className="line-clamp-3 text-xs font-bold text-navy-900">
-                            {scheme.benefitSummary || 'View the scheme details to learn about its benefits.'}
+                            {getSchemeCatalogText(scheme.benefitSummary || 'View the scheme details to learn about its benefits.', i18n.language)}
                           </p>
                         </div>
                         <p className="mb-4 text-xs text-gray-500">

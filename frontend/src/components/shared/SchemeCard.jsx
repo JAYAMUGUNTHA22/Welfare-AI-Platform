@@ -5,6 +5,7 @@ import { MatchScore } from './MatchScore';
 import { VerificationBadge } from './VerificationBadge';
 import { useTranslation } from 'react-i18next';
 import { getSchemeTranslation } from '@/data/schemeTranslations';
+import { getSchemeCatalogText } from '@/utils/schemeCatalogTranslations';
 import { SchemeApplicationAction } from '@/components/shared/SchemeApplicationAction';
 import { SchemeDetailsButton, SchemeDetailsLink } from '@/components/shared/SchemeDetailsLink';
 
@@ -43,16 +44,16 @@ export function SchemeCard({ scheme, showMatchReasons = false }) {
             className="group"
           >
             <h3 className="text-base font-bold text-navy-900 group-hover:text-primary-700 transition-colors">
-              {translated.name || t(`schemeNames.${schemeNameKey}`, { defaultValue: t(`schemeData.${scheme.name}`, { defaultValue: scheme.name }) })}
+              {translated.name || t(`schemeNames.${schemeNameKey}`, { defaultValue: getSchemeCatalogText(scheme.name, i18n.language) })}
             </h3>
           </SchemeDetailsLink>
-          <p className="mt-1 text-sm text-gray-500">{translated.provider || t(`schemeData.${scheme.provider}`, { defaultValue: scheme.provider })}</p>
+          <p className="mt-1 text-sm text-gray-500">{translated.provider || getSchemeCatalogText(scheme.provider, i18n.language)}</p>
           {scheme.verification && <div className="mt-2"><VerificationBadge status={scheme.verification} /></div>}
         </div>
         <MatchScore score={scheme.matchScore} size="md" scoreLabel={scheme.matchScoreLabel} />
       </div>
 
-      <p className="line-clamp-3 text-sm text-navy-600">{translated.benefit || t(`schemeData.${scheme.benefitSummary}`, { defaultValue: scheme.benefitSummary })}</p>
+      <p className="line-clamp-3 text-sm text-navy-600">{translated.benefit || getSchemeCatalogText(scheme.benefitSummary, i18n.language)}</p>
 
       {scheme.eligibilityStatus && (
         <div className="space-y-1.5">

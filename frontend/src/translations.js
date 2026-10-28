@@ -482,6 +482,11 @@ const pagesTamil = {
 
 
 const engSchemeDataExtra = {
+  'Central Government Scheme': 'Central Government Scheme',
+  'State Government Scheme': 'State Government Scheme',
+  'Government Scheme': 'Government Scheme',
+  Central: 'Central',
+  State: 'State',
   'TATA Skills Development Program': 'TATA Skills Development Program',
   'TATA Trusts': 'TATA Trusts',
   'Free skill training with stipend up to ₹8,000/month': 'Free skill training with stipend up to ₹8,000/month',
@@ -489,6 +494,11 @@ const engSchemeDataExtra = {
 };
 
 const hinSchemeDataExtra = {
+  'Central Government Scheme': 'केंद्र सरकार की योजना',
+  'State Government Scheme': 'राज्य सरकार की योजना',
+  'Government Scheme': 'सरकारी योजना',
+  Central: 'केंद्रीय',
+  State: 'राज्य',
   'TATA Skills Development Program': 'टाटा कौशल विकास कार्यक्रम',
   'TATA Trusts': 'टाटा ट्रस्ट',
   'Free skill training with stipend up to ₹8,000/month': '₹8,000/माह तक के वजीफे के साथ मुफ्त कौशल प्रशिक्षण',
@@ -496,6 +506,11 @@ const hinSchemeDataExtra = {
 };
 
 const tamSchemeDataExtra = {
+  'Central Government Scheme': 'மத்திய அரசுத் திட்டம்',
+  'State Government Scheme': 'மாநில அரசுத் திட்டம்',
+  'Government Scheme': 'அரசுத் திட்டம்',
+  Central: 'மத்திய',
+  State: 'மாநிலம்',
   'TATA Skills Development Program': 'டாடா திறன் மேம்பாட்டு திட்டம்',
   'TATA Trusts': 'டாடா டிரஸ்ட்',
   'Free skill training with stipend up to ₹8,000/month': 'மாதம் ₹8,000 வரை உதவித்தொகையுடன் இலவச திறன் பயிற்சி',

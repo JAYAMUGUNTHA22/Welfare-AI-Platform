@@ -5,11 +5,12 @@ import { Button } from '@/components/ui/Button';
 import { states } from '@/data/mockData';
 import { registerCitizen } from '@/services/api';
 import { useTranslation } from 'react-i18next';
+import { changePreferredLanguage, normalizeLanguage, supportedLanguages } from '@/utils/languagePreferences';
 
 export function RegisterPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState(() => normalizeLanguage(localStorage.getItem('userLanguage') || 'English'));
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -187,10 +188,10 @@ export function RegisterPage() {
 
             <div className="mt-5 border-t border-gray-100 pt-4">
               <label htmlFor="lang" className="label-base">
-                <Globe className="mr-1 inline h-4 w-4" /> Language
+                <Globe className="mr-1 inline h-4 w-4" /> {t('common.language', { defaultValue: 'Language' })}
               </label>
-              <select id="lang" value={language} onChange={(e) => setLanguage(e.target.value)} className="input-base">
-                {['English', 'हिंदी', 'मराठी', 'தமிழ்', 'తెలుగు', 'বাংলা', 'ગુજરાતી', 'ಕನ್ನಡ'].map((l) => (
+              <select id="lang" value={language} onChange={(event) => { setLanguage(event.target.value); void changePreferredLanguage(event.target.value); }} className="input-base">
+                {supportedLanguages.map((l) => (
                   <option key={l} value={l}>{l}</option>
                 ))}
               </select>

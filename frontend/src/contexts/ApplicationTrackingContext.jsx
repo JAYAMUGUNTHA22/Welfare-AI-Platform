@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { CheckCircle2, CircleHelp, LoaderCircle } from 'lucide-react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
@@ -69,6 +70,7 @@ function getSchemeSnapshot(scheme, applicationLink = {}) {
 export function ApplicationTrackingProvider({ children }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [followUp, setFollowUp] = useState(null);
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -93,8 +95,8 @@ export function ApplicationTrackingProvider({ children }) {
     }
     if (!localStorage.getItem('token')) {
       setInfo({
-        title: 'Sign in to track your applications',
-        message: 'You can review the scheme steps, but sign in is required to save your application and use the two-scheme limit.',
+        title: t('applicationTracking.signInTitle'),
+        message: t('applicationTracking.signInOffline'),
         action: 'sign-in',
       });
       navigate(destination || detailPath);
@@ -122,19 +124,19 @@ export function ApplicationTrackingProvider({ children }) {
       navigate(destination || detailPath);
     } catch (error) {
       if (error.message?.includes('already in your application list')) {
-        setInfo({ title: 'This scheme is already tracked', message: error.message, action: 'applications' });
+        setInfo({ title: t('applicationTracking.alreadyTitle'), message: error.message, action: 'applications' });
         navigate(destination || detailPath);
         return;
       }
-      setInfo({ title: 'Could not reserve an application slot', message: error.message || 'Please try again.' });
+      setInfo({ title: t('applicationTracking.reserveErrorTitle'), message: error.message || t('applicationTracking.saveError') });
     }
-  }, [location.pathname, location.search, navigate]);
+  }, [location.pathname, location.search, navigate, t]);
 
   const launchApplication = useCallback(async (scheme, applicationLink) => {
     if (!localStorage.getItem('token')) {
       setInfo({
-        title: 'Sign in to track your applications',
-        message: 'Sign in first so we can save this scheme to your application list and enforce the two-scheme limit.',
+        title: t('applicationTracking.signInTitle'),
+        message: t('applicationTracking.signInApply'),
         action: 'sign-in',
       });
       return;
@@ -157,7 +159,7 @@ export function ApplicationTrackingProvider({ children }) {
     const externalTab = window.open('about:blank', '_blank');
     if (!externalTab) {
       storeFollowUp(null);
-      setInfo({ title: 'Allow the application tab', message: 'Your browser blocked the new tab. Allow pop-ups for WelfareAI and try again.' });
+      setInfo({ title: t('applicationTracking.allowTitle'), message: t('applicationTracking.allowMessage') });
       return;
     }
     externalTab.opener = null;
@@ -176,9 +178,9 @@ export function ApplicationTrackingProvider({ children }) {
     } catch (error) {
       externalTab.close();
       storeFollowUp(null);
-      setInfo({ title: 'Could not start application tracking', message: error.message || 'Please try again.' });
+      setInfo({ title: t('applicationTracking.startErrorTitle'), message: error.message || t('applicationTracking.saveError') });
     }
-  }, [location.pathname, location.search]);
+  }, [location.pathname, location.search, t]);
 
   const handleSchemeDetailsBack = useCallback((scheme, destination = '/my-schemes') => {
     const schemeId = String(scheme?.schemeId || scheme?.myschemeSlug || scheme?.slug || scheme?.id || '');
@@ -241,18 +243,18 @@ export function ApplicationTrackingProvider({ children }) {
       clearFollowUp();
       window.dispatchEvent(new Event('applications-updated'));
       setInfo({
-        title: submitted ? 'Application saved' : 'No application added',
+        title: submitted ? t('applicationTracking.savedTitle') : t('applicationTracking.notAddedTitle'),
         message: submitted
-          ? 'Your confirmation is recorded in My Applications. Scheme-listed benefit details are available in My Benefits; the department decides the final approved amount.'
-          : 'You can return to this scheme and apply later. The reserved application slot has been released.',
+          ? t('applicationTracking.savedMessage')
+          : t('applicationTracking.notAddedMessage'),
         action: 'applications',
       });
     } catch (error) {
-      setActionError(error.message || 'Could not save this update. Please try again.');
+      setActionError(error.message || t('applicationTracking.saveError'));
     } finally {
       setBusy(false);
     }
-  }, [busy, clearFollowUp, followUp]);
+  }, [busy, clearFollowUp, followUp, t]);
 
   const value = useMemo(() => ({ launchApplication, beginOfflineReview, handleSchemeDetailsBack }), [beginOfflineReview, handleSchemeDetailsBack, launchApplication]);
 
@@ -262,7 +264,7 @@ export function ApplicationTrackingProvider({ children }) {
       <Modal
         open={Boolean(followUp)}
         onClose={() => {}}
-        title={followUp?.kind === 'offline-review' ? 'Did you submit this application?' : 'Did you register for this scheme?'}
+        title={followUp?.kind === 'offline-review' ? t('applicationTracking.offlineModalTitle') : t('applicationTracking.externalModalTitle')}
         className="max-w-md"
       >
         {followUp && (
@@ -273,18 +275,18 @@ export function ApplicationTrackingProvider({ children }) {
                 <p className="font-bold text-slate-900">{followUp.scheme.schemeName}</p>
                 <p className="mt-1 text-sm leading-relaxed text-slate-600">
                   {followUp.kind === 'offline-review'
-                    ? 'After reviewing the steps, did you submit the application to the department?'
-                    : 'Please confirm whether you completed registration on the official scheme website.'}
+                    ? t('applicationTracking.offlineQuestion')
+                    : t('applicationTracking.externalQuestion')}
                 </p>
               </div>
             </div>
             {actionError && <p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{actionError}</p>}
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <Button variant="outline" onClick={() => answerFollowUp(false)} disabled={busy}>
-                {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : 'Not yet'}
+                {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : t('applicationTracking.notYet')}
               </Button>
               <Button onClick={() => answerFollowUp(true)} disabled={busy}>
-                {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4" /> Yes, I applied</>}
+                {busy ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <><CheckCircle2 className="h-4 w-4" /> {t('applicationTracking.yesApplied')}</>}
               </Button>
             </div>
           </div>

@@ -138,7 +138,7 @@ export function WhatIfPage() {
 
   if (loading) {
     return (
-      <DashboardLayout title="What-If Eligibility Simulator" subtitle="Real-time scenario evaluation">
+      <DashboardLayout title={t('whatIfTitle')} subtitle={t('whatIfSub')}>
         <div className="flex h-64 items-center justify-center">
           <p className="animate-pulse text-gray-500">Loading your profile data from MongoDB...</p>
         </div>
@@ -153,10 +153,7 @@ export function WhatIfPage() {
   const lostEligibilities = simulationResult?.lostEligibilities || [];
 
   return (
-    <DashboardLayout
-      title="What-If Eligibility Simulator"
-      subtitle="Simulate profile changes against real MongoDB schemes without modifying your stored profile."
-    >
+    <DashboardLayout title={t('whatIfTitle')} subtitle={t('whatIfSub')}>
       <div className="space-y-6">
         {/* Top Header Section with Real User Info */}
         <div className="whatif-hero flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between rounded-2xl border border-sky-100 p-6 shadow-lg">
